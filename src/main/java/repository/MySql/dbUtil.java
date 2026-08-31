@@ -7,8 +7,6 @@ import java.sql.Statement;
 public class dbUtil {
 
     public static void createTables() {
-        Connection conn = MySqlConnectionManager.getInstance().getConnection();
-
         String createCliente = "CREATE TABLE IF NOT EXISTS cliente (" +
                 "idCliente INT AUTO_INCREMENT PRIMARY KEY, " +
                 "nombre VARCHAR(50) NOT NULL, " +
@@ -25,16 +23,31 @@ public class dbUtil {
                 "idFactura INT AUTO_INCREMENT PRIMARY KEY, " +
                 "idCliente INT NOT NULL, " +
                 "fecha DATE, " +
-                " FOREIGN KEY (idCliente) REFERENCES cliente(idCliente)" +
+                "FOREIGN KEY (idCliente) REFERENCES cliente(idCliente)" +
                 ");";
 
-        try (Statement stmt = conn.createStatement()) {
+        String createFacturaProducto = "CREATE TABLE IF NOT EXISTS factura_producto (" +
+                "idFactura INT NOT NULL, " +
+                "idProducto INT NOT NULL, " +
+                "cantidad INT NOT NULL, " +
+                "PRIMARY KEY (idFactura, idProducto), " +
+                "FOREIGN KEY (idFactura) REFERENCES factura(idFactura), " +
+                "FOREIGN KEY (idProducto) REFERENCES producto(idProducto)" +
+                ");";
+
+        // Obtenemos la conexión aquí mismo dentro de un bloque try-with-resources para que se cierre bien
+        try (Connection conn = MySqlConnectionManager.getInstance().getConnection();
+             Statement stmt = conn.createStatement()) {
+
             stmt.execute(createCliente);
             stmt.execute(createProducto);
             stmt.execute(createFactura);
-            System.out.println("Tablas (Cliente, Producto, Factura) creadas correctamente.");
+            stmt.execute(createFacturaProducto);
+            System.out.println("Tablas creadas correctamente.");
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
 }
