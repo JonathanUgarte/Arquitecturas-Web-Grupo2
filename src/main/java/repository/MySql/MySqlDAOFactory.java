@@ -5,7 +5,6 @@ import dao.IClienteDAO;
 import dao.IFacturaDAO;
 import dao.IProductoDAO;
 
-
 public class MySqlDAOFactory extends DAOFactory {
 
     @Override
@@ -25,7 +24,7 @@ public class MySqlDAOFactory extends DAOFactory {
 
     @Override
     public void createTables() {
-        // Delegamos la creación física a DBUtil
+        // Simplemente delega en el dbUtil que ya sabe abrir su propia conexión
         dbUtil.createTables();
     }
 }
