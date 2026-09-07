@@ -9,13 +9,13 @@ public class dbUtil {
     public static void createTables() {
         String createCliente = "CREATE TABLE IF NOT EXISTS cliente (" +
                 "idCliente INT AUTO_INCREMENT PRIMARY KEY, " +
-                "nombre VARCHAR(50) NOT NULL, " +
-                "email VARCHAR(80)" +
+                "nombre VARCHAR(500) NOT NULL, " +
+                "email VARCHAR(150)" +
                 ");";
 
         String createProducto = "CREATE TABLE IF NOT EXISTS producto (" +
                 "idProducto INT AUTO_INCREMENT PRIMARY KEY, " +
-                "nombre VARCHAR(50) NOT NULL, " +
+                "nombre VARCHAR(45) NOT NULL, " +
                 "valor FLOAT NOT NULL" +
                 ");";
 
