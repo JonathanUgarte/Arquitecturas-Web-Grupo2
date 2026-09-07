@@ -1,17 +1,16 @@
 import java.sql.Connection;
-import repository.MySql.MySqlConnectionManager;
-import repository.MySql.CSVLoader;
-import repository.MySql.dbUtil;
-import repository.MySql.MySqlProductoDAO;
+import java.util.List;
+import java.util.Map;
+
+import entities.Cliente;
+import repository.MySql.*;
 import entities.Producto;
 
 public class Main {
     public static void main(String[] args) {
 
-        // 1. Primero creamos las tablas
         dbUtil.createTables();
 
-        // 2. Abrimos la conexión SOLAMENTE para cargar los datos de los CSVs
         try (Connection conn = MySqlConnectionManager.getInstance().getConnection()) {
             System.out.println("Iniciando carga de datos...");
             CSVLoader.cargarDatos(conn);
@@ -21,8 +20,7 @@ public class Main {
             e.printStackTrace();
         }
 
-        // --- PUNTO 3: Producto que más recaudó ---
-        // (El DAO ahora maneja su propia conexión internamente)
+
         System.out.println("--- 3. Producto que más recaudó ---");
         MySqlProductoDAO productoDAO = new MySqlProductoDAO();
         Producto productoTop = productoDAO.getProductoMasRecaudador();
@@ -34,6 +32,22 @@ public class Main {
         } else {
             System.out.println("No se encontraron productos o ventas.");
         }
+        System.out.println("\n--- 4. Clientes ordenados por facturación ---");
+        MySqlClienteDAO clienteDAO = new MySqlClienteDAO();
+        Map<Cliente, Double> clientesTop = clienteDAO.getClientesOrdenadosPorFacturacion();
 
+        if (clientesTop != null && !clientesTop.isEmpty()) {
+            for (Map.Entry<Cliente, Double> entry : clientesTop.entrySet()) {
+                Cliente c = entry.getKey();
+                Double totalFacturado = entry.getValue();
+
+                System.out.println("ID: " + c.getIdCliente() +
+                        " | Nombre: " + c.getNombre() +
+                        " | Email: " + c.getEmail() +
+                        " | Total Facturado: $" + totalFacturado);
+            }
+        } else {
+            System.out.println("No se encontraron clientes con facturación.");
+        }
     }
 }
