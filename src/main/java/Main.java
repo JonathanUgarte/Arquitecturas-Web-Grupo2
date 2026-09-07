@@ -3,6 +3,7 @@ import java.util.List;
 import java.util.Map;
 
 import entities.Cliente;
+import entities.dto.ProductoDTO;
 import repository.MySql.*;
 import entities.Producto;
 
@@ -23,12 +24,13 @@ public class Main {
 
         System.out.println("--- 3. Producto que más recaudó ---");
         MySqlProductoDAO productoDAO = new MySqlProductoDAO();
-        Producto productoTop = productoDAO.getProductoMasRecaudador();
+        ProductoDTO productoTop = productoDAO.getProductoMasRecaudador();
 
         if (productoTop != null) {
             System.out.println("ID: " + productoTop.getIdProducto() +
                     " | Producto: " + productoTop.getNombre() +
-                    " | Valor unitario: $" + productoTop.getValor());
+                    " | Valor unitario: $" + productoTop.getValor()+
+                    " | Valor recaudado: $" + productoTop.getRecaudacion());
         } else {
             System.out.println("No se encontraron productos o ventas.");
         }
