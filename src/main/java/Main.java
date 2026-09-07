@@ -2,12 +2,6 @@ import java.sql.Connection;
 import repository.MySql.MySqlConnectionManager;
 import repository.MySql.CSVLoader;
 import repository.MySql.dbUtil;
-
-import java.sql.Connection;
-import java.util.List;
-import repository.MySql.MySqlConnectionManager;
-import repository.MySql.CSVLoader;
-import repository.MySql.dbUtil;
 import repository.MySql.MySqlProductoDAO;
 import repository.MySql.MySqlClienteDAO;
 import entities.Producto;
