@@ -35,7 +35,6 @@ public class dbUtil {
                 "FOREIGN KEY (idProducto) REFERENCES producto(idProducto)" +
                 ");";
 
-        // Obtenemos la conexión aquí mismo dentro de un bloque try-with-resources para que se cierre bien
         try (Connection conn = MySqlConnectionManager.getInstance().getConnection();
              Statement stmt = conn.createStatement()) {
 

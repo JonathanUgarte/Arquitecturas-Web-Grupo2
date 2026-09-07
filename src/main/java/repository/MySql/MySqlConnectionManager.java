@@ -7,7 +7,6 @@ import java.sql.SQLException;
 
 public class MySqlConnectionManager implements IConnectionManager {
 
-    // 1. Instancia única privada y estática
     private static MySqlConnectionManager instance;
     private Connection connection;
 
@@ -15,10 +14,8 @@ public class MySqlConnectionManager implements IConnectionManager {
     private static final String USER = "root";
     private static final String PASSWORD = "password";
 
-    // 2. Constructor privado para evitar 'new' desde fuera
     private MySqlConnectionManager() {
         try {
-            // Cargar el driver de MySQL (opcional en versiones recientes de JDBC)
             Class.forName("com.mysql.cj.jdbc.Driver");
             this.connection = DriverManager.getConnection(URI, USER, PASSWORD);
         } catch (ClassNotFoundException | SQLException e) {
@@ -26,7 +23,6 @@ public class MySqlConnectionManager implements IConnectionManager {
         }
     }
 
-    // 3. Método ESTÁTICO y PÚBLICO para acceder a la instancia
     public static synchronized MySqlConnectionManager getInstance() {
         if (instance == null) {
             instance = new MySqlConnectionManager();
@@ -34,7 +30,6 @@ public class MySqlConnectionManager implements IConnectionManager {
         return instance;
     }
 
-    // 4. Método para devolver la conexión activa
     public Connection getConnection() {
         try {
             if (this.connection == null || this.connection.isClosed()) {

@@ -24,7 +24,6 @@ public class MySqlDAOFactory extends DAOFactory {
 
     @Override
     public void createTables() {
-        // Simplemente delega en el dbUtil que ya sabe abrir su propia conexión
         dbUtil.createTables();
     }
 }

@@ -19,7 +19,6 @@ public class MySqlProductoDAO implements IProductoDAO {
                 "ORDER BY recaudacion DESC " +
                 "LIMIT 1";
 
-        // Usamos tu ConnectionManager acá
         try (Connection conn = MySqlConnectionManager.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(query);
              ResultSet rs = ps.executeQuery()) {
