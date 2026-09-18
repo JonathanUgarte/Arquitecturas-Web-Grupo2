@@ -1,43 +1,55 @@
-import factory.DAOFactory;
-import factory.DBType;
-import repository.MySql.MySqlConnectionManager;
-
 import java.sql.Connection;
-import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
+import entities.Cliente;
+import entities.dto.ProductoDTO;
+import repository.MySql.*;
+import entities.Producto;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("=== PRUEBA DE CONEXIÓN Y CREACIÓN DE TABLAS ===");
 
-        // 1. Probar la conexión física con el Singleton
-        try {
-            Connection conn = MySqlConnectionManager.getInstance().getConnection();
-            if (conn != null && !conn.isClosed()) {
-                System.out.println("✔ Conexión exitosa a la base de datos.");
-            } else {
-                System.err.println("❌ La conexión devolvió null o está cerrada.");
-                return;
-            }
-        } catch (SQLException e) {
-            System.err.println("❌ Error al verificar el estado de la conexión: " + e.getMessage());
+        dbUtil.createTables();
+
+        try (Connection conn = MySqlConnectionManager.getInstance().getConnection()) {
+            System.out.println("Iniciando carga de datos...");
+            CSVLoader.cargarDatos(conn);
+            System.out.println("¡Proceso de carga finalizado con éxito!\n");
+        } catch (Exception e) {
+            System.err.println("Ocurrió un error en la carga de datos: " + e.getMessage());
             e.printStackTrace();
-            return;
         }
 
-        // 2. Probar la Factory y la creación de tablas a través de DBUtil
-        try {
-            DAOFactory factory = DAOFactory.getDAOFactory(DBType.MYSQL);
 
-            if (factory != null) {
-                System.out.println("Creando tablas en el motor seleccionado...");
-                factory.createTables();
-                System.out.println("✔ Estructura de base de datos verificada correctamente.");
-            } else {
-                System.err.println("❌ No se pudo instanciar el DAOFactory.");
+        System.out.println("--- 3. Producto que más recaudó ---");
+        MySqlProductoDAO productoDAO = new MySqlProductoDAO();
+        ProductoDTO productoTop = productoDAO.getProductoMasRecaudador();
+
+        if (productoTop != null) {
+            System.out.println("ID: " + productoTop.getIdProducto() +
+                    " | Producto: " + productoTop.getNombre() +
+                    " | Valor unitario: $" + productoTop.getValor()+
+                    " | Valor recaudado: $" + productoTop.getRecaudacion());
+        } else {
+            System.out.println("No se encontraron productos o ventas.");
+        }
+        System.out.println("\n--- 4. Clientes ordenados por facturación ---");
+        MySqlClienteDAO clienteDAO = new MySqlClienteDAO();
+        Map<Cliente, Double> clientesTop = clienteDAO.getClientesOrdenadosPorFacturacion();
+
+        if (clientesTop != null && !clientesTop.isEmpty()) {
+            for (Map.Entry<Cliente, Double> entry : clientesTop.entrySet()) {
+                Cliente c = entry.getKey();
+                Double totalFacturado = entry.getValue();
+
+                System.out.println("ID: " + c.getIdCliente() +
+                        " | Nombre: " + c.getNombre() +
+                        " | Email: " + c.getEmail() +
+                        " | Total Facturado: $" + totalFacturado);
             }
-        } catch (Exception e) {
-            System.err.println("❌ Falló la creación de las tablas:");
-            e.printStackTrace();
+        } else {
+            System.out.println("No se encontraron clientes con facturación.");
         }
     }
 }
