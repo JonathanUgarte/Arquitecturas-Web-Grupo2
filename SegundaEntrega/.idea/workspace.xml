@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="99fbeea5-a67a-4682-b4a4-f78323a6cc45" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.idea/dataSources/data_sources_history.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.idea/workspace.xml" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DatabaseLocalColorSettings">
+    <colors>
+      <entry key="fc203dec-8fd4-4895-966d-f19d312da286" value="" />
+    </colors>
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="5" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.0000002255577198" />
+      <entry key="MS500" value="1.046843737554861" />
+      <entry key="S2" value="1.4652248467515594" />
+      <entry key="S5" value="1.7406679207873446" />
+      <entry key="S10" value="2.1530696120079704" />
+      <entry key="S30" value="7.192081208876287" />
+      <entry key="S60" value="12.95964993073528" />
+      <entry key="M2" value="18.344160059826674" />
+      <entry key="M5" value="24.483077469072285" />
+      <entry key="M10" value="29.83615260348381" />
+      <entry key="M15" value="33.343810146688575" />
+      <entry key="M30" value="38.86286440801621" />
+      <entry key="H1" value="42.83469826204442" />
+      <entry key="H2" value="45.24470509654098" />
+      <entry key="H4" value="46.57583192070471" />
+      <entry key="D1" value="47.75586975942881" />
+      <entry key="W1" value="47.96495430833073" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="4.4090112328498586E-244" />
+      <entry key="MS500" value="2.132397874955046E-49" />
+      <entry key="S2" value="6.795431832548018E-13" />
+      <entry key="S5" value="1.3579595201231309E-5" />
+      <entry key="S10" value="0.003685050230760329" />
+      <entry key="S30" value="0.15452413814548968" />
+      <entry key="S60" value="0.4010605651829491" />
+      <entry key="M2" value="0.7190984178821015" />
+      <entry key="M5" value="1.4097165347618765" />
+      <entry key="M10" value="2.558709446478877" />
+      <entry key="M15" value="3.493473897453756" />
+      <entry key="M30" value="5.110317339738014" />
+      <entry key="H1" value="6.342048949103243" />
+      <entry key="H2" value="7.108872711004566" />
+      <entry key="H4" value="7.537619583578339" />
+      <entry key="D1" value="7.92048339466349" />
+      <entry key="W1" value="7.988578809036417" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="1.4965841148665348E-5" />
+      <entry key="MS500" value="0.13752447642486101" />
+      <entry key="S2" value="0.9869775020100409" />
+      <entry key="S5" value="1.5073170347936171" />
+      <entry key="S10" value="2.030934323387107" />
+      <entry key="S30" value="7.295476424730047" />
+      <entry key="S60" value="13.328647957376042" />
+      <entry key="M2" value="19.041682000816785" />
+      <entry key="M5" value="25.87848350955325" />
+      <entry key="M10" value="32.383330677425874" />
+      <entry key="M15" value="36.827318053443044" />
+      <entry key="M30" value="43.96627639533921" />
+      <entry key="H1" value="49.172576013839276" />
+      <entry key="H2" value="52.35127084178006" />
+      <entry key="H4" value="54.112236469873366" />
+      <entry key="D1" value="55.676141518814376" />
+      <entry key="W1" value="55.95350265221293" />
+    </decayedShown>
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1,
+  &quot;fromUser&quot;: false
+}</component>
+  <component name="ProjectId" id="3JkKy9E2ZUzePXSP9Ut0HbR0Hi3" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.Main.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "master",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/UNI/Arqui/TPE/SegundaEntrega/src/main/resources/data",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "onboarding.tips.debug.path": "D:/UNI/Arqui/TPE/SegundaEntrega/src/main/java/org/example/Main.java"
+  },
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "mysql"
+    ]
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\UNI\Arqui\TPE\SegundaEntrega\src\main\resources\data" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-34e2839f716b-intellij.indexing.shared.core-IU-262.9437.185" />
+        <option value="bundled-js-predefined-d6986cc7102b-4abd2a77f808-JavaScript-IU-262.9437.185" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="99fbeea5-a67a-4682-b4a4-f78323a6cc45" name="Changes" comment="" />
+      <created>1790199881435</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1790199881435</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/org/example/Main.java</url>
+          <line>13</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
