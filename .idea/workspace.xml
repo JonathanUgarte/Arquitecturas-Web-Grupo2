@@ -4,7 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="cc154d1f-e8a4-4785-b8a5-405c23f6df76" name="Changes" comment="fixes" />
+    <list default="true" id="cc154d1f-e8a4-4785-b8a5-405c23f6df76" name="Changes" comment="fixes">
+      <change afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/repository/CarreraRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/repository/EstudianteRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/repository/InscripcionRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SegundaEntrega/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/SegundaEntrega/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SegundaEntrega/src/main/java/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/Main.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -55,6 +64,9 @@
   &quot;fromUser&quot;: false
 }</component>
   <component name="ProjectId" id="3IgHhrL4BYRXGcjYMr5m1zUBcI3" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -67,8 +79,10 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "jona",
     "kotlin-language-version-configured": "true",
-    "nodejs_package_manager_path": "npm"
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "advanced.settings"
   },
   "keyToStringList": {
     "DatabaseDriversLRU": [
@@ -125,5 +139,20 @@
     <MESSAGE value="trabajando en la creacion de tablas y chequeando conexion a db" />
     <MESSAGE value="fixes" />
     <option name="LAST_COMMIT_MESSAGE" value="fixes" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/SegundaEntrega/src/main/java/entities/Inscripcion.java</url>
+          <line>68</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>
