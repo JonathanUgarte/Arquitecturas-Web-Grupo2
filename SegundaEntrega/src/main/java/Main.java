@@ -1,3 +1,4 @@
+import dto.ReporteCarreraDTO;
 import entities.Carrera;
 import entities.Estudiante;
 import entities.Genero;
@@ -78,6 +79,11 @@ public class Main {
             List<Estudiante> filtrados = estudianteRepo.obtenerEstudiantesPorCarreraYCiudad("TUARI", "Tandil");
             for (Estudiante e : filtrados) {
                 System.out.println(" - " + e.getNombres() + " " + e.getApellido() + " (Ciudad: " + e.getCiudadResidencia() + ")");
+            }
+            System.out.println("\n3) Generando reporte de carreras (Inscriptos/Egresados por año):");
+            List<ReporteCarreraDTO> reporte = carreraRepo.generarReporteCarreras();
+            for (ReporteCarreraDTO item : reporte) {
+                System.out.println(" - " + item.toString());
             }
 
         } catch (Exception e) {

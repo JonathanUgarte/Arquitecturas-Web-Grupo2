@@ -5,14 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cc154d1f-e8a4-4785-b8a5-405c23f6df76" name="Changes" comment="fixes">
-      <change afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/repository/CarreraRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/repository/EstudianteRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/repository/InscripcionRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/dto/ReporteCarreraDTO.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SegundaEntrega/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/SegundaEntrega/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SegundaEntrega/src/main/java/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SegundaEntrega/src/main/java/repository/CarreraRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/repository/CarreraRepository.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,7 +39,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="jona" />
+        <entry key="$PROJECT_DIR$" value="master" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -53,12 +50,71 @@
     &quot;assignee&quot;: &quot;JonathanUgarte&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/JonathanUgarte/Arquitecturas-Web-Grupo2.git&quot;,
-    &quot;accountId&quot;: &quot;00c1e065-2e14-4b07-97ef-24633cf59308&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/JonathanUgarte/Arquitecturas-Web-Grupo2.git",
+    "accountId": "3ac59d66-1a91-4739-90e4-1d85005c5cee"
   }
-}</component>
+}]]></component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0" />
+      <entry key="S5" value="1.0" />
+      <entry key="S10" value="1.000000000000008" />
+      <entry key="S30" value="1.0000383303908373" />
+      <entry key="S60" value="1.0105678230447737" />
+      <entry key="M2" value="1.1773436180356889" />
+      <entry key="M5" value="1.966860834976266" />
+      <entry key="M10" value="2.7028198487565414" />
+      <entry key="M15" value="3.0565362213267977" />
+      <entry key="M30" value="3.483822300145849" />
+      <entry key="H1" value="3.7297244642172953" />
+      <entry key="H2" value="3.861669756465594" />
+      <entry key="H4" value="3.930017769631709" />
+      <entry key="D1" value="3.988221159001145" />
+      <entry key="W1" value="3.9983144670224933" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="0.0" />
+      <entry key="S60" value="0.0" />
+      <entry key="M2" value="0.0" />
+      <entry key="M5" value="0.0" />
+      <entry key="M10" value="0.0" />
+      <entry key="M15" value="0.0" />
+      <entry key="M30" value="0.0" />
+      <entry key="H1" value="0.0" />
+      <entry key="H2" value="0.0" />
+      <entry key="H4" value="0.0" />
+      <entry key="D1" value="0.0" />
+      <entry key="W1" value="0.0" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="0.5946035575013605" />
+      <entry key="MS500" value="0.9012504626108302" />
+      <entry key="S2" value="0.9743418912017071" />
+      <entry key="S5" value="0.989656656415207" />
+      <entry key="S10" value="0.9948148855014297" />
+      <entry key="S30" value="0.9983068347230271" />
+      <entry key="S60" value="1.0096840272104741" />
+      <entry key="M2" value="1.1767614617812983" />
+      <entry key="M5" value="1.9663623101732293" />
+      <entry key="M10" value="2.702446724745771" />
+      <entry key="M15" value="3.056247779805265" />
+      <entry key="M30" value="3.483654103780996" />
+      <entry key="H1" value="3.7296334667187607" />
+      <entry key="H2" value="3.8616224066622307" />
+      <entry key="H4" value="3.929993615298173" />
+      <entry key="D1" value="3.988217065233053" />
+      <entry key="W1" value="3.9983138805127396" />
+    </decayedShown>
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6,
   &quot;fromUser&quot;: false
@@ -79,10 +135,23 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
-    "git-widget-placeholder": "jona",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "apagola",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.jshint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.jshint": "",
+    "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "advanced.settings"
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "advanced.settings",
+    "to.speed.mode.migration.done": "true"
   },
   "keyToStringList": {
     "DatabaseDriversLRU": [
