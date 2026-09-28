@@ -5,11 +5,31 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cc154d1f-e8a4-4785-b8a5-405c23f6df76" name="Changes" comment="fixes">
-      <change afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/dto/ReporteCarreraDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/Helpers/ExecutorCSV.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/dao/IFacturaProductoDAO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/dao/Impl/MySqlFacturaDAO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/dao/Impl/MySqlFacturaProductoDAO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/entities/FacturaProducto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/entities/dto/ClienteDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/factory/MySQLDAOFactory.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SegundaEntrega/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/SegundaEntrega/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SegundaEntrega/src/main/java/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SegundaEntrega/src/main/java/repository/CarreraRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/repository/CarreraRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/dao/IClienteDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/dao/IClienteDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/dao/IFacturaDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/dao/IFacturaDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/dao/IProductoDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/dao/IProductoDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/entities/Cliente.java" beforeDir="false" afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/entities/Cliente.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/entities/Producto.java" beforeDir="false" afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/entities/Producto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/entities/dto/ProductoDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/entities/dto/ProductoDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/factory/DAOFactory.java" beforeDir="false" afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/factory/DAOFactory.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/factory/IConnectionManager.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/repository/MySql/CSVLoader.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/repository/MySql/MySqlClienteDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/dao/Impl/MySqlClienteDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/repository/MySql/MySqlConnectionManager.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/repository/MySql/MySqlDAOFactory.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/repository/MySql/MySqlFacturaDAO.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/repository/MySql/MySqlProductoDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/Primera entrega/src/main/java/dao/Impl/MySqlProductoDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Primera entrega/src/main/java/repository/MySql/dbUtil.java" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,12 +70,12 @@
     &quot;assignee&quot;: &quot;JonathanUgarte&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/JonathanUgarte/Arquitecturas-Web-Grupo2.git",
-    "accountId": "3ac59d66-1a91-4739-90e4-1d85005c5cee"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/JonathanUgarte/Arquitecturas-Web-Grupo2.git&quot;,
+    &quot;accountId&quot;: &quot;ff45b890-f1a1-4f4c-9693-5318a8f2947d&quot;
   }
-}]]></component>
+}</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
       <entry key="MS100" value="1.0" />
@@ -136,7 +156,7 @@
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "apagola",
+    "git-widget-placeholder": "master",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",

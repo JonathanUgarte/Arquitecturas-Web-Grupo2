@@ -7,8 +7,8 @@ import lombok.ToString;
 
 @Getter
 @Setter
-@ToString(callSuper = true) // Incluye los campos del padre en el toString si lo necesitas
 public class ProductoDTO extends Producto {
+
     private double recaudacion;
 
     // Como Lombok no hereda automáticamente los constructores,
@@ -19,4 +19,9 @@ public class ProductoDTO extends Producto {
     }
 
 
+    @Override
+    public String toString() {
+        return super.toString() +
+                "\n|Recaudacion= " + recaudacion;
+    }
 }
