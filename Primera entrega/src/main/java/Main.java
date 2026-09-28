@@ -1,55 +1,56 @@
-import java.sql.Connection;
 import java.util.List;
-import java.util.Map;
 
-import entities.Cliente;
-import entities.dto.ProductoDTO;
-import repository.MySql.*;
-import entities.Producto;
+import Helpers.ExecutorCSV;
+import dao.IClienteDAO;
+import dao.IProductoDAO;
+
+import entities.dto.ClienteDTO;
+import factory.DAOFactory;
+import factory.DBType;
 
 public class Main {
     public static void main(String[] args) {
+        try{
+            //Intanciamos nuestra factory de la cual usaremos la conexion
+            DAOFactory myslqFactory = DAOFactory.getDAOFactory(DBType.MYSQL);
 
-        dbUtil.createTables();
+            //Executor funciona para crear lo primordial de la DB
+            ExecutorCSV executor = new ExecutorCSV(myslqFactory);
 
-        try (Connection conn = MySqlConnectionManager.getInstance().getConnection()) {
-            System.out.println("Iniciando carga de datos...");
-            CSVLoader.cargarDatos(conn);
-            System.out.println("¡Proceso de carga finalizado con éxito!\n");
-        } catch (Exception e) {
-            System.err.println("Ocurrió un error en la carga de datos: " + e.getMessage());
-            e.printStackTrace();
-        }
+            //Aseguramos de que la base este solo con el contenido necesario entonces borramos las tablas y las cargamos
+            executor.dropTables();
+            executor.createTables();
+
+            //Rellenamos las tablas con los CSVs
+            executor.fillDB();
 
 
-        System.out.println("--- 3. Producto que más recaudó ---");
-        MySqlProductoDAO productoDAO = new MySqlProductoDAO();
-        ProductoDTO productoTop = productoDAO.getProductoMasRecaudador();
+            // 3. Programa JDBC que retorne el producto que más recaudó
 
-        if (productoTop != null) {
-            System.out.println("ID: " + productoTop.getIdProducto() +
-                    " | Producto: " + productoTop.getNombre() +
-                    " | Valor unitario: $" + productoTop.getValor()+
-                    " | Valor recaudado: $" + productoTop.getRecaudacion());
-        } else {
-            System.out.println("No se encontraron productos o ventas.");
-        }
-        System.out.println("\n--- 4. Clientes ordenados por facturación ---");
-        MySqlClienteDAO clienteDAO = new MySqlClienteDAO();
-        Map<Cliente, Double> clientesTop = clienteDAO.getClientesOrdenadosPorFacturacion();
+            System.out.println("\n ---Producto que mas recaudo---");
+            IProductoDAO pDAO = myslqFactory.getProductoDAO();
 
-        if (clientesTop != null && !clientesTop.isEmpty()) {
-            for (Map.Entry<Cliente, Double> entry : clientesTop.entrySet()) {
-                Cliente c = entry.getKey();
-                Double totalFacturado = entry.getValue();
+            if(pDAO != null) System.out.println(pDAO.getProductoMasRecaudador());
+            else System.out.println("No se encontraron productos o ventas.");
 
-                System.out.println("ID: " + c.getIdCliente() +
-                        " | Nombre: " + c.getNombre() +
-                        " | Email: " + c.getEmail() +
-                        " | Total Facturado: $" + totalFacturado);
+
+            //4. Programa JDBC que imprima una lista de clientes, ordenada por a cuál se le facturó más
+
+            System.out.println("\n ---Clientes ordenados por facturación---");
+                IClienteDAO cDAO = myslqFactory.getClienteDAO();
+                List<ClienteDTO> clientesTop = cDAO.getClientesOrdenadosPorFacturacion();
+            if (clientesTop != null && !clientesTop.isEmpty()) {
+
+                clientesTop.forEach(cliente -> System.out.println(cliente));
+
+            } else {
+                System.out.println("No se encontraron clientes con facturación.");
             }
-        } else {
-            System.out.println("No se encontraron clientes con facturación.");
+
+            System.out.println("Finalizado Saludos!!!");
+
+        } catch (Exception e){
+            e.printStackTrace();
         }
     }
 }
