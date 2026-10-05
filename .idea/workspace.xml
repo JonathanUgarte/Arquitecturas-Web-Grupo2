@@ -4,8 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="cc154d1f-e8a4-4785-b8a5-405c23f6df76" name="Changes" comment="fixes">
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/data_sources_history.xml" afterDir="false" />
+    <list default="true" id="cc154d1f-e8a4-4785-b8a5-405c23f6df76" name="Changes" comment="eliminacion de archivos sobrantes">
+      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SegundaEntrega.zip" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/SegundaEntrega_CSV.zip" beforeDir="false" />
     </list>
@@ -50,8 +52,8 @@
 }</component>
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/JonathanUgarte/Arquitecturas-Web-Grupo2.git&quot;,
-    &quot;accountId&quot;: &quot;3ac59d66-1a91-4739-90e4-1d85005c5cee&quot;
+    &quot;url&quot;: &quot;https://github.com/JonathanUgarte/Arquitecturas-Web-Grupo2&quot;,
+    &quot;accountId&quot;: &quot;47f1103c-6dc2-4270-8e49-273eee7d2a96&quot;
   }
 }</component>
   <component name="NextEditCompletionFeaturesState">
@@ -113,6 +115,9 @@
       <entry key="W1" value="3.9983138805127396" />
     </decayedShown>
   </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="ProjectErrors" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6,
   &quot;fromUser&quot;: false
@@ -132,12 +137,14 @@
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Spring Boot.TerceraEntregaApplication.executor": "Run",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
+    "git-widget-placeholder": "aguss-rebord",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/aleja/IdeaProjects/Arquitecturas-Web-Grupo2",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.jshint": "true",
     "node.js.detected.package.tslint": "true",
