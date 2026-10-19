@@ -4,8 +4,9 @@ API REST del Ejercicio Integrador de Arquitecturas Web.
 
 ## Estructura
 
-- `controller`: expone los endpoints REST.
-- `service`: contiene la logica del ejercicio y convierte entidades a DTO.
+- `controller`: un controller por entidad (`EstudianteController`, `CarreraController`, `InscripcionController`).
+- `service`: un service por entidad con su logica de negocio (`EstudianteService`, `CarreraService`, `InscripcionService`).
+- `mapper`: conversion de entidades a DTO (`EstudianteMapper`).
 - `repository`: acceso a datos con Spring Data JPA.
 - `dto`: objetos utilizados por la API.
 - `entities`: entidades JPA.
