@@ -28,11 +28,6 @@ public class ExecutorCSV {
         this.daofactory = daofactory;
     }
 
-    // Borra y vuelve a crear el esquema a través de la factory (no depende del motor)
-    public void resetSchema() throws SQLException {
-        daofactory.dropTables();
-        daofactory.createTables();
-        System.out.println("Tablas recreadas!");
     }
 
         public void fillDB() throws Exception {
@@ -92,7 +87,6 @@ public class ExecutorCSV {
 
                 System.out.println("-> Productos cargados exitosamente.");
 
-            } catch (IOException | SQLException e) {
                 System.err.println("Error al cargar productos: " + e.getMessage());
             }
         }
@@ -109,14 +103,11 @@ public class ExecutorCSV {
             try(CSVParser parser = CSVFormat.DEFAULT.withHeader().parse(new InputStreamReader(input))){
                 for(CSVRecord row : parser){
                     int idFactura = Integer.parseInt(row.get("idFactura").trim());
-                    int idCliente = Integer.parseInt(row.get("idCliente").trim());
 
-                    fDAO.insertar(new Factura(idFactura, idCliente));
                 }
 
                 System.out.println("-> Facturas cargadas exitosamente.");
 
-            } catch (IOException | SQLException e) {
                 System.err.println("Error al cargar facturas: " + e.getMessage());
             }
         }
@@ -143,7 +134,6 @@ public class ExecutorCSV {
 
             System.out.println("-> Relación Factura-Producto cargada exitosamente.");
 
-            } catch (IOException | SQLException e) {
                 System.err.println("Error al cargar facturas-productos: " + e.getMessage());
             }
         }
