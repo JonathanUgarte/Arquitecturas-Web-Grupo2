@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            # ---- catalogo-service (8081): lugares, eventos y busqueda ----
+            - id: catalogo
+              uri: http://localhost:8081
+              predicates:
+                - Path=/lugares/**,/eventos/**
+
+            # ---- ventas-service (8082): reservas, pagos, entradas, devoluciones y disponibilidad ----
+            - id: ventas
+              uri: http://localhost:8082
+              predicates:
+                - Path=/reservas/**,/entradas/**,/devoluciones/**,/disponibilidad/**
+
+# IMPORTANTE: las rutas /interno/** (comunicacion entre servicios) NO se publican aqui,
+# por eso no son accesibles desde afuera: el gateway responde 404.
