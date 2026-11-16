@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="cc154d1f-e8a4-4785-b8a5-405c23f6df76" name="Changes" comment=" JWT con roles y despliegue con Docker" />
+    <list default="true" id="cc154d1f-e8a4-4785-b8a5-405c23f6df76" name="Changes" comment="fixes">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -131,6 +133,10 @@
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Spring Boot.ApiGatewayApplication.executor": "Run",
+    "Spring Boot.AuthServiceApplication.executor": "Run",
+    "Spring Boot.CatalogoServiceApplication.executor": "Run",
+    "Spring Boot.VentasServiceApplication.executor": "Run",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
     "git-widget-placeholder": "master",
@@ -167,8 +173,22 @@
         <option value="SpringBootApplicationConfigurationType" />
       </set>
     </option>
+    <option name="configurationStatuses">
+      <map>
+        <entry key="SpringBootApplicationConfigurationType">
+          <value>
+            <map>
+              <entry key="ApiGatewayApplication" value="STOPPED" />
+              <entry key="AuthServiceApplication" value="STOPPED" />
+              <entry key="CatalogoServiceApplication" value="STOPPED" />
+              <entry key="VentasServiceApplication" value="STOPPED" />
+            </map>
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
-  <component name="RunManager" selected="JUnit.All in catalogo-service">
+  <component name="RunManager" selected="Spring Boot.VentasServiceApplication">
     <configuration name="All in auth-service" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="auth-service" />
       <option name="PACKAGE_NAME" value="" />
@@ -288,9 +308,9 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Implementacion de clases y conexion a la db" />
     <MESSAGE value="trabajando en la creacion de tablas y chequeando conexion a db" />
-    <MESSAGE value="fixes" />
     <MESSAGE value=" JWT con roles y despliegue con Docker" />
-    <option name="LAST_COMMIT_MESSAGE" value=" JWT con roles y despliegue con Docker" />
+    <MESSAGE value="fixes" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixes" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
