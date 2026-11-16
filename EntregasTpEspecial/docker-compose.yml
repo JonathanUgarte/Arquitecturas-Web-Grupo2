@@ -1,0 +1,178 @@
+# TicketYa - sistema completo con un solo comando:   docker compose up --build
+#
+# Un contenedor por microservicio y por base de datos:
+#  - PostgreSQL (una base por servicio) para auth, catalogo y ventas, que necesitan transacciones.
+#  - MongoDB (configuracion de la catedra) para preferencias y notificaciones, cada uno con su propia base.
+#  - RabbitMQ para la comunicacion asincronica (eventos de compras, cancelaciones y publicaciones).
+# Solo el gateway publica un puerto hacia afuera (8080): los servicios quedan en la red interna de Docker,
+# asi nadie puede saltearse la validacion del JWT llamando directo a un servicio.
+# MongoDB y RabbitMQ se publican solo en 127.0.0.1 (no en la red) para usar herramientas de desarrollo
+# (MongoDB Compass, la consola web de RabbitMQ) y para correr los servicios desde IntelliJ.
+
+x-postgres-healthcheck: &pg-healthcheck
+  test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+  interval: 5s
+  timeout: 3s
+  retries: 20
+
+services:
+
+  # ------------------------------------------------------------------ bases de datos
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: ticketya
+      POSTGRES_PASSWORD: ticketya
+    volumes:
+      - auth-data:/var/lib/postgresql/data
+    healthcheck: *pg-healthcheck
+
+  catalogo-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: catalogo
+      POSTGRES_USER: ticketya
+      POSTGRES_PASSWORD: ticketya
+    volumes:
+      - catalogo-data:/var/lib/postgresql/data
+    healthcheck: *pg-healthcheck
+
+  ventas-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ventas
+      POSTGRES_USER: ticketya
+      POSTGRES_PASSWORD: ticketya
+    volumes:
+      - ventas-data:/var/lib/postgresql/data
+    healthcheck: *pg-healthcheck
+
+  # Configuracion de MongoDB provista por la catedra (mongodb.yml), con volumen y healthcheck agregados
+  mongo:
+    image: mongo:7.0.11
+    command:
+      - --auth
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: db
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ------------------------------------------------------------------ mensajeria
+  # Consola web: http://localhost:15672 (usuario ticketya / clave ticketya)
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ticketya
+      RABBITMQ_DEFAULT_PASS: ticketya
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ------------------------------------------------------------------ microservicios
+  auth-service:
+    build: ./auth-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth
+      SPRING_DATASOURCE_USERNAME: ticketya
+      SPRING_DATASOURCE_PASSWORD: ticketya
+      SPRING_H2_CONSOLE_ENABLED: "false"
+      JWT_SECRET: ${JWT_SECRET:-ticketya-secreto-de-desarrollo-cambiar-en-produccion-2026}
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+  catalogo-service:
+    build: ./catalogo-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://catalogo-db:5432/catalogo
+      SPRING_DATASOURCE_USERNAME: ticketya
+      SPRING_DATASOURCE_PASSWORD: ticketya
+      SPRING_H2_CONSOLE_ENABLED: "false"
+      VENTAS_URL: http://ventas-service:8082
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      catalogo-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  ventas-service:
+    build: ./ventas-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://ventas-db:5432/ventas
+      SPRING_DATASOURCE_USERNAME: ticketya
+      SPRING_DATASOURCE_PASSWORD: ticketya
+      SPRING_H2_CONSOLE_ENABLED: "false"
+      # ventas.catalogo-url (Spring: puntos -> "_", sin guiones, en mayusculas)
+      VENTAS_CATALOGOURL: http://catalogo-service:8081
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      ventas-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  preferencias-service:
+    build: ./preferencias-service
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://root:password@mongo:27017/preferencias?authSource=admin
+      SPRING_RABBITMQ_HOST: rabbitmq
+      PREFERENCIAS_CATALOGOURL: http://catalogo-service:8081
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  notificaciones-service:
+    build: ./notificaciones-service
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://root:password@mongo:27017/notificaciones?authSource=admin
+      SPRING_RABBITMQ_HOST: rabbitmq
+      NOTIFICACIONES_CATALOGOURL: http://catalogo-service:8081
+      NOTIFICACIONES_PREFERENCIASURL: http://preferencias-service:8084
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # ------------------------------------------------------------------ punto de entrada unico
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      AUTH_URL: http://auth-service:8083
+      CATALOGO_URL: http://catalogo-service:8081
+      VENTAS_URL: http://ventas-service:8082
+      PREFERENCIAS_URL: http://preferencias-service:8084
+      NOTIFICACIONES_URL: http://notificaciones-service:8085
+      JWT_SECRET: ${JWT_SECRET:-ticketya-secreto-de-desarrollo-cambiar-en-produccion-2026}
+    depends_on:
+      - auth-service
+      - catalogo-service
+      - ventas-service
+      - preferencias-service
+      - notificaciones-service
+
+volumes:
+  auth-data:
+  catalogo-data:
+  ventas-data:
+  mongo-data:
