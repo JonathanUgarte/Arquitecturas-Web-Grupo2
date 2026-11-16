@@ -1,0 +1,13 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: arquiterceraentrega
+    ports:
+      - "3307:3306"
+    volumes:
+      - terceraentrega-mysql-data:/var/lib/mysql
+volumes:
+  terceraentrega-mysql-data:
