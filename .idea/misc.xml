@@ -11,6 +11,8 @@
         <option value="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/pom.xml" />
         <option value="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/pom.xml" />
         <option value="$PROJECT_DIR$/EntregasTpEspecial/auth-service/pom.xml" />
+        <option value="$PROJECT_DIR$/EntregasTpEspecial/notificaciones-service/pom.xml" />
+        <option value="$PROJECT_DIR$/EntregasTpEspecial/preferencias-service/pom.xml" />
       </list>
     </option>
   </component>

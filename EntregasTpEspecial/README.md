@@ -2,7 +2,8 @@
 
 Plataforma de venta de entradas (ticketera virtual) basada en **microservicios con Spring Boot**.
 Trabajo práctico de Arquitectura Web (TUDAI). **Entrega 1** (núcleo: publicación, búsqueda y compra sin doble venta) completa;
-**Entrega 2** (sistema completo) en curso: ya incluye seguridad con JWT y roles, y despliegue con Docker.
+**Entrega 2** (sistema completo) en curso: ya incluye seguridad con JWT y roles, despliegue con Docker, MongoDB,
+preferencias y recomendaciones, y notificaciones asincrónicas con RabbitMQ.
 
 > Integrantes: Agustin pagola, Agustin Rebord, Jonatan Ugarte
 
@@ -24,6 +25,12 @@ Trabajo práctico de Arquitectura Web (TUDAI). **Entrega 1** (núcleo: publicaci
 - **Docker**: cada microservicio y cada base de datos en su propio contenedor, y todo el sistema con un único
   `docker-compose.yml`. En Docker cada servicio usa su propia base **PostgreSQL**.
 - Tests de seguridad: cada endpoint solo es accesible por los roles que corresponden.
+- **Preferencias y recomendaciones (10)** en un nuevo `preferencias-service` con **MongoDB**: ciudad, tipos y artistas
+  favoritos, historial de compras y sugerencias del tipo "quienes compraron este evento también compraron...".
+- **Notificaciones (11)** en un nuevo `notificaciones-service`: avisos al confirmar una compra, al cancelarse un evento y
+  cuando un artista favorito publica un evento en la ciudad del cliente.
+- **Comunicación asincrónica con RabbitMQ**: ventas y catálogo publican eventos (`compra.confirmada`, `evento.cancelado`,
+  `evento.publicado`) que consumen preferencias y notificaciones, con reintentos y cola de mensajes fallidos.
 
 ## Estructura del repositorio
 
@@ -31,6 +38,8 @@ Trabajo práctico de Arquitectura Web (TUDAI). **Entrega 1** (núcleo: publicaci
 docker-compose.yml    Levanta todo el sistema (bases, servicios y gateway)
 api-gateway/          Punto de entrada único (puerto 8080): valida el JWT y los roles
 auth-service/         Usuarios, roles, registro y login con JWT (puerto 8083)
+preferencias-service/ Preferencias, historial y recomendaciones, con MongoDB (puerto 8084)
+notificaciones-service/ Avisos a los clientes a partir de mensajes de RabbitMQ, con MongoDB (puerto 8085)
 catalogo-service/     Lugares, eventos, precios, publicación y búsqueda (puerto 8081)
 ventas-service/       Reservas, pagos, entradas, devoluciones y disponibilidad (puerto 8082)
 docs/                 Diseño: user stories, arquitectura, diagramas, modelo de datos, endpoints y OpenAPI
@@ -47,13 +56,24 @@ Requisito: Docker Desktop (o Docker Engine con el plugin compose). Desde esta ca
 docker compose up --build
 ```
 
-La primera vez tarda unos minutos (descarga imágenes y dependencias de Maven). Levanta 7 contenedores:
-`auth-db`, `catalogo-db` y `ventas-db` (PostgreSQL 16), `auth-service`, `catalogo-service`, `ventas-service` y `api-gateway`.
+La primera vez tarda unos minutos (descarga imágenes y dependencias de Maven). Levanta 11 contenedores:
+
+| Tipo | Contenedores |
+|---|---|
+| Bases relacionales | `auth-db`, `catalogo-db`, `ventas-db` (PostgreSQL 16) |
+| Base NoSQL | `mongo` (MongoDB 7, configuración provista por la cátedra), con las bases `preferencias` y `notificaciones` |
+| Mensajería | `rabbitmq` (RabbitMQ 3.13 con consola web) |
+| Microservicios | `auth-service`, `catalogo-service`, `ventas-service`, `preferencias-service`, `notificaciones-service` |
+| Punto de entrada | `api-gateway` |
 
 **Solo el gateway publica un puerto: `http://localhost:8080`.** Los servicios y las bases quedan en la red interna de
 Docker, así nadie puede saltearse la validación del JWT llamando directo a un servicio.
 
 - Detener: `docker compose down` · Detener y borrar los datos: `docker compose down -v`
+- **Consola de RabbitMQ:** http://localhost:15672 (usuario `ticketya`, clave `ticketya`): colas, mensajes y la cola de fallidos.
+- **MongoDB** (por ejemplo con MongoDB Compass): `mongodb://root:password@localhost:27017/?authSource=admin`.
+- MongoDB y RabbitMQ se publican solo en `127.0.0.1` (no quedan expuestos a la red), para estas herramientas y para
+  correr servicios desde IntelliJ.
 - El secreto del JWT se puede cambiar con la variable `JWT_SECRET` (por ejemplo en un archivo `.env` junto al compose).
 
 ## Cómo ejecutarlo sin Docker (desarrollo)
@@ -67,8 +87,18 @@ Docker, así nadie puede saltearse la validación del JWT llamando directo a un 
 
 ### Ejecución
 
+`preferencias-service` y `notificaciones-service` necesitan MongoDB y RabbitMQ, y catálogo y ventas los usan para publicar
+eventos. Sin Docker para los servicios, se pueden levantar solo esos dos contenedores:
+
+```bash
+docker compose up -d mongo rabbitmq
+```
+
+(Si RabbitMQ no está levantado, catálogo y ventas funcionan igual: solo no se envían los avisos.)
+
 Con IntelliJ: abrir el repositorio, agregar cada `pom.xml` como proyecto Maven y ejecutar las clases `main`
-**en este orden**: `AuthServiceApplication`, `CatalogoServiceApplication`, `VentasServiceApplication` y `ApiGatewayApplication`.
+**en este orden**: `AuthServiceApplication`, `CatalogoServiceApplication`, `VentasServiceApplication`,
+`PreferenciasServiceApplication`, `NotificacionesServiceApplication` y `ApiGatewayApplication`.
 
 Con la línea de comandos (una terminal por servicio):
 
@@ -76,6 +106,8 @@ Con la línea de comandos (una terminal por servicio):
 cd auth-service     && mvn spring-boot:run
 cd catalogo-service && mvn spring-boot:run
 cd ventas-service   && mvn spring-boot:run
+cd preferencias-service   && mvn spring-boot:run
+cd notificaciones-service && mvn spring-boot:run
 cd api-gateway      && mvn spring-boot:run
 ```
 
@@ -85,6 +117,8 @@ cd api-gateway      && mvn spring-boot:run
 | catalogo-service | 8081 | http://localhost:8081/swagger-ui.html | http://localhost:8081/h2-console |
 | ventas-service | 8082 | http://localhost:8082/swagger-ui.html | http://localhost:8082/h2-console |
 | auth-service | 8083 | http://localhost:8083/swagger-ui.html | http://localhost:8083/h2-console |
+| preferencias-service | 8084 | http://localhost:8084/swagger-ui.html | MongoDB (`preferencias`) |
+| notificaciones-service | 8085 | http://localhost:8085/swagger-ui.html | MongoDB (`notificaciones`) |
 
 Datos de la consola H2: JDBC URL `jdbc:h2:file:./data/catalogo` (o `./data/ventas`, `./data/auth`), usuario `sa`, sin contraseña.
 
@@ -121,7 +155,10 @@ Para empezar de cero: sin Docker, detener los servicios y borrar la carpeta `dat
 
 1. Importar en Postman la colección `postman/TicketYa.postman_collection.json` (usa la variable `baseUrl` = `http://localhost:8080`).
 2. Ejecutar primero la carpeta **0. Autenticación**: hace login con un usuario de cada rol y guarda los tokens.
-3. Ejecutar en orden: **1. Catálogo**, **2. Compra** y **3. Devoluciones y cancelación**. Cada request ya usa el token del rol que corresponde.
+3. Ejecutar en orden: **1. Catálogo**, **2. Compra**, **3. Devoluciones y cancelación** y **4. Preferencias, recomendaciones
+   y notificaciones**. Cada request ya usa el token del rol que corresponde. La carpeta 4 necesita MongoDB y RabbitMQ:
+   muestra el historial armado a partir de la compra, la recomendación del evento de un artista favorito y los tres
+   tipos de aviso (compra, cancelación y artista favorito).
 
 ### Autenticación (entrega 2)
 
@@ -137,6 +174,8 @@ Para empezar de cero: sin Docker, detener los servicios y borrar la carpeta `dat
 | `PUT /eventos/{id}/suspension`, `PUT /eventos/{id}/cancelacion` | ADMIN |
 | `/reservas/**`, `/entradas/**`, `POST /devoluciones` | CLIENTE |
 | `GET /devoluciones`, `PUT /devoluciones/{id}/aprobacion`, `PUT /devoluciones/{id}/rechazo`, `/auth/usuarios` | ADMIN |
+| `/preferencias`, `/recomendaciones` | CLIENTE |
+| `GET /notificaciones` | Cualquier usuario autenticado (ve las suyas) |
 
 Sin token (o con un token vencido o mal firmado) la respuesta es **401**; con un rol que no corresponde, **403**.
 Para ver un pago rechazado se usa el medio de pago `TARJETA_RECHAZADA`.
@@ -156,6 +195,14 @@ Desde cada carpeta de servicio: `mvn test` (o, en IntelliJ, clic derecho sobre `
 | auth-service | `AuthControllerTest` | Registro (siempre CLIENTE), email repetido, login con JWT válido, contraseña incorrecta y alta solo por ADMIN |
 | api-gateway | `ReglasDeAccesoTest` | Tabla de permisos: cada endpoint, con cada rol (y sin token), da el resultado esperado |
 | api-gateway | `AutenticacionFilterTest` | 401 sin token, vencido o mal firmado; 403 con rol incorrecto; reenvío de la identidad del token y descarte de headers falsificados |
+| ventas-service | `EventosPublicadosTest` | Se publica una sola `compra.confirmada` aunque se reintente el pago, ninguna si se rechaza, y una sola `evento.cancelado` con los compradores |
+| preferencias-service | `RecomendadorTest` | Puntaje de recomendaciones: co-compra, artista y tipo favorito, ciudad, arranque en frío, límite y desempate |
+| preferencias-service | `PreferenciasIntegracionTest` * | Contra MongoDB real: preferencias, historial idempotente, recomendación por co-compra y búsqueda de interesados |
+| notificaciones-service | `NotificacionServiceTest` | Avisos de compra, cancelación (uno por comprador) y artista favorito; duplicados; fallas del canal y de preferencias |
+| notificaciones-service | `NotificacionesIntegracionTest` * | De punta a punta con RabbitMQ y MongoDB reales: mensaje publicado → aviso registrado, sin duplicados |
+
+\* Usan **Testcontainers**: levantan MongoDB y RabbitMQ reales en contenedores, así que necesitan **Docker Desktop abierto**.
+Si Docker no está disponible, esos tests se saltean (no fallan) y el resto corre igual.
 
 Los tests usan bases en memoria y simulan los servicios externos, así que no necesitan Docker ni que los otros servicios estén levantados.
 
@@ -182,7 +229,7 @@ y una clave de idempotencia por pago (reintentos del cliente). El detalle está 
 
 - ~~Sin autenticación~~ (resuelto en la entrega 2 con JWT).
 - Pasarela de pagos simulada: rechaza los medios de pago que contienen "RECHAZ" y aprueba el resto.
-- Una base H2 por servicio (en la entrega 2, PostgreSQL en Docker; MongoDB y otras tecnologías pendientes).
+- Una base H2 por servicio (en la entrega 2: PostgreSQL en Docker y MongoDB para preferencias y notificaciones).
 - Orden por relevancia no implementado (se suma con las recomendaciones).
 - ~~Ejecución local, sin contenedores~~ (resuelto en la entrega 2 con Docker y docker-compose).
 
@@ -195,8 +242,10 @@ Las limitaciones conocidas están detalladas en `docs/02-arquitectura.md`.
 | JWT con roles (auth-service + gateway) | Hecho |
 | Docker por servicio y docker-compose | Hecho |
 | Pruebas de acceso por rol | Hecho |
-| Fila virtual, control de acceso con QR, preferencias y recomendaciones, notificaciones, reportes | Pendiente |
-| Base NoSQL, caché, resiliencia, compensaciones (Saga), log centralizado, mensajería | Pendiente |
+| Base NoSQL (MongoDB), preferencias y recomendaciones, notificaciones | Hecho |
+| Comunicación asincrónica (RabbitMQ) | Hecho |
+| Fila virtual, control de acceso con QR, reportes | Pendiente |
+| Caché, resiliencia (Circuit Breaker), compensaciones (Saga), log centralizado | Pendiente |
 | Pruebas de integración entre servicios y prueba de carga | Pendiente |
 
 ## Uso de herramientas de IA

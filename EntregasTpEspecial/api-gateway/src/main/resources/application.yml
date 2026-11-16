@@ -27,6 +27,18 @@ spring:
               predicates:
                 - Path=/reservas/**,/entradas/**,/devoluciones/**,/disponibilidad/**
 
+            # ---- preferencias-service (8084): preferencias y recomendaciones (MongoDB) ----
+            - id: preferencias
+              uri: ${PREFERENCIAS_URL:http://localhost:8084}
+              predicates:
+                - Path=/preferencias/**,/recomendaciones/**
+
+            # ---- notificaciones-service (8085): avisos recibidos por el usuario ----
+            - id: notificaciones
+              uri: ${NOTIFICACIONES_URL:http://localhost:8085}
+              predicates:
+                - Path=/notificaciones/**
+
 # IMPORTANTE: las rutas /interno/** (comunicacion entre servicios) NO se publican aqui,
 # por eso no son accesibles desde afuera: el gateway responde 404.
 # Las direcciones de los servicios se pueden cambiar con variables de entorno (en Docker apuntan a

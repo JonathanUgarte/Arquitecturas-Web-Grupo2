@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TicketYa - Entrega 2",
-    "description": "Todos los pedidos entran por el API Gateway (baseUrl). Seguridad con JWT: ejecutar primero la carpeta \"0. Autenticación\", que hace login con un usuario de cada rol y guarda los tokens en variables de la colección. Cada request usa \"Authorization: Bearer {{token...}}\" según el rol que corresponde. Los headers X-Usuario-Id y X-Rol ya no se envían: el gateway los completa a partir del token. Orden sugerido: carpetas 0, 1, 2 y 3. Usuarios de prueba (clave ticketya123): cliente@, cliente2@, organizador@, admin@ y acceso@ticketya.com.",
+    "description": "Todos los pedidos entran por el API Gateway (baseUrl). Seguridad con JWT: ejecutar primero la carpeta \"0. Autenticación\", que hace login con un usuario de cada rol y guarda los tokens en variables de la colección. Cada request usa \"Authorization: Bearer {{token...}}\" según el rol que corresponde. Los headers X-Usuario-Id y X-Rol ya no se envían: el gateway los completa a partir del token. Orden sugerido: carpetas 0, 1, 2, 3 y 4 (la 4 necesita MongoDB y RabbitMQ). La 5 son comprobaciones de rutas internas. Usuarios de prueba (clave ticketya123): cliente@, cliente2@, organizador@, admin@ y acceso@ticketya.com.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -2407,7 +2407,444 @@
       ]
     },
     {
-      "name": "4. Rutas internas (comprobación)",
+      "name": "4. Preferencias, recomendaciones y notificaciones (MongoDB + RabbitMQ)",
+      "description": "Requiere MongoDB y RabbitMQ (con Docker: docker compose up). Ejecutar después de las carpetas 0 a 3: usa la compra y la cancelación del evento 1 para mostrar el historial y los avisos. El cliente marca un artista favorito; el organizador publica un evento de ese artista en Tandil; el cliente recibe la recomendación y la notificación.",
+      "item": [
+        {
+          "name": "Ver mis preferencias e historial (la compra de la carpeta 2 ya está)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"La compra quedó en el historial (vía RabbitMQ)\", function () { pm.expect(pm.response.json().historial.length).to.be.at.least(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/preferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "preferencias"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Guardar mis preferencias",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Guardadas\", function () { pm.expect(pm.response.json().artistasFavoritos).to.include(\"Los Nuevos\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/preferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "preferencias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ciudad\": \"Tandil\",\n  \"tiposFavoritos\": [\n    \"RECITAL\"\n  ],\n  \"artistasFavoritos\": [\n    \"Los Nuevos\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Preferencias con un tipo inexistente -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/preferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "preferencias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tiposFavoritos\": [\n    \"CIRCO\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "El organizador no tiene recomendaciones -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recomendaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recomendaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Organizador crea un evento de \"Los Nuevos\" en Tandil",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set(\"eventoFavoritoId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/eventos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Los Nuevos en vivo\",\n  \"descripcion\": \"Presentación del disco\",\n  \"tipo\": \"RECITAL\",\n  \"organizador\": \"Productora Sur\",\n  \"participantes\": [\n    \"Los Nuevos\"\n  ],\n  \"fechaHora\": \"2027-05-10T21:00:00\",\n  \"lugarId\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Definir precios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/{{eventoFavoritoId}}/precios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos",
+                "{{eventoFavoritoId}}",
+                "precios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precios\": [\n    {\n      \"sectorId\": \"{{sectorCampo}}\",\n      \"precio\": 20000\n    },\n    {\n      \"sectorId\": \"{{sectorPlatea}}\",\n      \"precio\": 40000\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Publicar (dispara el aviso al cliente por RabbitMQ)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/{{eventoFavoritoId}}/publicacion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos",
+                "{{eventoFavoritoId}}",
+                "publicacion"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mis recomendaciones: el evento nuevo aparece primero",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "const r = pm.response.json();",
+                  "pm.test(\"Recomienda el evento del artista favorito\", function () {",
+                  "    pm.expect(r[0].eventoId).to.eql(Number(pm.collectionVariables.get(\"eventoFavoritoId\")));",
+                  "    pm.expect(r[0].motivos.join(\" \")).to.include(\"Los Nuevos\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recomendaciones?limite=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recomendaciones"
+              ],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mis notificaciones: compra, cancelación y artista favorito",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// El aviso se procesa en forma asincronica (RabbitMQ): se espera un momento antes de consultar",
+                  "setTimeout(function () {}, 2000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "const tipos = pm.response.json().map(n => n.tipo);",
+                  "pm.test(\"Aviso de compra confirmada\", function () { pm.expect(tipos).to.include(\"COMPRA_CONFIRMADA\"); });",
+                  "pm.test(\"Aviso de evento cancelado\", function () { pm.expect(tipos).to.include(\"EVENTO_CANCELADO\"); });",
+                  "pm.test(\"Aviso de artista favorito\", function () { pm.expect(tipos).to.include(\"ARTISTA_FAVORITO\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notificaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notificaciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Notificaciones sin token -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 401\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notificaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notificaciones"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Rutas internas (comprobación)",
       "item": [
         {
           "name": "Ruta interna por el gateway -> 404 (no se publica)",
@@ -2535,6 +2972,10 @@
     {
       "key": "tokenInvalido",
       "value": "eyJhbGciOiJIUzI1NiJ9.e30.firma-invalida"
+    },
+    {
+      "key": "eventoFavoritoId",
+      "value": ""
     }
   ]
 }

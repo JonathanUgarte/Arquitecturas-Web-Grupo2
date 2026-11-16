@@ -5,7 +5,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cc154d1f-e8a4-4785-b8a5-405c23f6df76" name="Changes" comment="fixes">
+      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/api-gateway/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/api-gateway/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/service/EventoService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/service/EventoService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/test/resources/application-test.properties" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/test/resources/application-test.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/docs/02-arquitectura.md" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/docs/02-arquitectura.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/docs/04-modelo-de-datos.md" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/docs/04-modelo-de-datos.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/docs/05-api-endpoints.md" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/docs/05-api-endpoints.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/postman/TicketYa.postman_collection.json" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/postman/TicketYa.postman_collection.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/repository/EntradaRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/repository/EntradaRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/CancelacionEventoService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/CancelacionEventoService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/ReservaService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/ReservaService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/test/resources/application-test.properties" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/test/resources/application-test.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -127,8 +146,14 @@
   "keyToString": {
     "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
     "Application.Main.executor": "Run",
+    "JUnit.All in api-gateway.executor": "Run",
     "JUnit.All in auth-service.executor": "Run",
     "JUnit.All in catalogo-service.executor": "Run",
+    "JUnit.All in notificaciones-service.executor": "Run",
+    "JUnit.All in preferencias-service.executor": "Run",
+    "JUnit.All in ventas-service.executor": "Run",
+    "JUnit.java in auth-service.executor": "Run",
+    "JUnit.java in catalogo-service.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
@@ -188,19 +213,43 @@
       </map>
     </option>
   </component>
-  <component name="RunManager" selected="Spring Boot.VentasServiceApplication">
-    <configuration name="All in auth-service" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="auth-service" />
+  <component name="RunManager" selected="JUnit.All in ventas-service">
+    <configuration name="All in api-gateway" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="api-gateway" />
       <option name="PACKAGE_NAME" value="" />
       <option name="TEST_OBJECT" value="package" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="All in catalogo-service" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="catalogo-service" />
+    <configuration name="All in notificaciones-service" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="notificaciones-service" />
       <option name="PACKAGE_NAME" value="" />
       <option name="TEST_OBJECT" value="package" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="All in ventas-service" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="ventas-service" />
+      <option name="PACKAGE_NAME" value="" />
+      <option name="TEST_OBJECT" value="package" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="java in auth-service" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="auth-service" />
+      <option name="TEST_OBJECT" value="directory" />
+      <dir value="$PROJECT_DIR$/EntregasTpEspecial/auth-service/src/test/java" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="java in catalogo-service" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="catalogo-service" />
+      <option name="TEST_OBJECT" value="directory" />
+      <dir value="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/test/java" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -226,6 +275,20 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="NotificacionesServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="notificaciones-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ticketya.notificaciones.NotificacionesServiceApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="PreferenciasServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="preferencias-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ticketya.preferencias.PreferenciasServiceApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="TerceraEntregaApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <module name="TerceraEntrega" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="com.tudai.terceraentrega.TerceraEntregaApplication" />
@@ -242,8 +305,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="JUnit.All in catalogo-service" />
-        <item itemvalue="JUnit.All in auth-service" />
+        <item itemvalue="JUnit.All in ventas-service" />
+        <item itemvalue="JUnit.All in api-gateway" />
+        <item itemvalue="JUnit.java in auth-service" />
+        <item itemvalue="JUnit.java in catalogo-service" />
+        <item itemvalue="JUnit.All in notificaciones-service" />
       </list>
     </recent_temporary>
   </component>

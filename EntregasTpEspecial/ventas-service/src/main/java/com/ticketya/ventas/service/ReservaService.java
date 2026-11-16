@@ -6,10 +6,12 @@ import com.ticketya.ventas.client.ResultadoPago;
 import com.ticketya.ventas.config.VentasProperties;
 import com.ticketya.ventas.dto.*;
 import com.ticketya.ventas.exception.*;
+import com.ticketya.ventas.mensajeria.CompraConfirmadaEvento;
 import com.ticketya.ventas.model.*;
 import com.ticketya.ventas.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,7 @@ public class ReservaService {
     private final CompraRepository compraRepo;
     private final EntradaRepository entradaRepo;
     private final EventoCanceladoRepository eventoCanceladoRepo;
+    private final ApplicationEventPublisher eventos;
 
     private record InicioPago(Long compraId, boolean nueva, boolean vencida, BigDecimal monto) {
     }
@@ -193,7 +196,17 @@ public class ReservaService {
         final ResultadoPago resultado = cobro;
 
         // Fase 3 (transaccion corta): emitir las entradas o liberar los lugares
-        return tx.execute(status -> confirmarPago(inicio.compraId(), resultado));
+        CompraDTO compra = tx.execute(status -> confirmarPago(inicio.compraId(), resultado));
+
+        // Fase 4 (asincronica): avisar la compra confirmada a notificaciones y preferencias.
+        // Solo en el primer pago aprobado (un reintento con la misma clave sale antes y no vuelve a avisar).
+        if (compra.estado() == EstadoCompra.APROBADA && !compra.entradas().isEmpty()
+                && compra.entradas().get(0).estado() == EstadoEntrada.VENDIDA) {
+            eventos.publishEvent(new CompraConfirmadaEvento(compra.id(), usuarioId,
+                    compra.entradas().get(0).eventoId(), compra.entradas().size(), compra.monto(),
+                    LocalDateTime.now(clock)));
+        }
+        return compra;
     }
 
     private InicioPago iniciarPagoSeguro(Long usuarioId, Long reservaId, String clave, String medioPago) {

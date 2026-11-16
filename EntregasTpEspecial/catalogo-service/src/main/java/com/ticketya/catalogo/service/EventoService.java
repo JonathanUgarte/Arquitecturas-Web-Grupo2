@@ -11,7 +11,9 @@ import com.ticketya.catalogo.repository.PrecioSectorRepository;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
+import com.ticketya.catalogo.mensajeria.EventoPublicadoEvento;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ public class EventoService {
     private final EventoRepository eventoRepo;
     private final LugarRepository lugarRepo;
     private final PrecioSectorRepository precioRepo;
+    private final ApplicationEventPublisher eventos;
 
     // ---------- Crear (siempre en BORRADOR) ----------
     @Transactional
@@ -102,6 +105,9 @@ public class EventoService {
             throw new ConflictException("Faltan precios para los sectores: " + String.join(", ", sinPrecio));
         }
         e.setEstado(EstadoEvento.PUBLICADO);
+        // Se envia a RabbitMQ recien cuando la transaccion se confirma (ver PublicadorDeEventos)
+        eventos.publishEvent(new EventoPublicadoEvento(e.getId(), e.getNombre(), e.getTipo().name(),
+                List.copyOf(e.getParticipantes()), e.getLugar().getCiudad(), e.getFechaHora()));
         return toDTO(e);
     }
 

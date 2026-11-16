@@ -343,3 +343,62 @@ Rechaza la solicitud: la entrada sigue vendida. Códigos: 200, 403, 404, 409.
 | `POST /interno/eventos/{eventoId}/cancelacion` | ventas (8082) | Pasa las entradas VENDIDA a A_REINTEGRAR y libera las reservas pendientes. Idempotente. |
 
 Si se intenta acceder a `/interno/**` por el gateway, responde 404.
+
+---
+
+# Preferencias y recomendaciones (preferencias-service)
+
+## GET /preferencias  ·  CLIENTE
+Preferencias del cliente y su historial de compras (el historial se arma solo, a partir de los mensajes `compra.confirmada`).
+
+Response 200:
+```json
+{ "usuarioId": 1, "ciudad": "Tandil", "tiposFavoritos": ["RECITAL"], "artistasFavoritos": ["Los Nuevos"],
+  "historial": [ { "compraId": 12, "eventoId": 1, "nombreEvento": "Recital de Prueba", "tipo": "RECITAL",
+                   "participantes": ["Banda Uno", "Banda Dos"], "ciudad": "Tandil", "fecha": "2026-11-16T11:30:00" } ] }
+```
+
+## PUT /preferencias  ·  CLIENTE
+Los campos en `null` (o que no se envían) quedan como estaban.
+
+| Código | Cuándo |
+|---|---|
+| 200 | Preferencias guardadas |
+| 400 | Tipo de evento inexistente |
+| 409 | El perfil se modificó al mismo tiempo desde otro lado (reintentar) |
+
+Request: `{ "ciudad": "Tandil", "tiposFavoritos": ["RECITAL"], "artistasFavoritos": ["Los Nuevos"] }`
+
+## GET /recomendaciones?limite=10  ·  CLIENTE
+Eventos a la venta sugeridos, del más al menos relevante, con el puntaje y los motivos.
+
+| Código | Cuándo |
+|---|---|
+| 200 | Lista de recomendaciones (sin datos del cliente: los próximos eventos a la venta) |
+| 400 | `limite` fuera de 1 a 50 |
+| 503 | El catálogo no responde |
+
+Response 200:
+```json
+[ { "eventoId": 5, "nombre": "Los Nuevos en vivo", "tipo": "RECITAL", "ciudad": "Tandil",
+    "fechaHora": "2027-05-10T21:00:00", "precioDesde": 20000, "puntaje": 8,
+    "motivos": ["Participa Los Nuevos, uno de tus artistas favoritos", "Es de tipo RECITAL, uno de tus favoritos",
+                "Es en tu ciudad (Tandil)"] } ]
+```
+
+---
+
+# Notificaciones (notificaciones-service)
+
+## GET /notificaciones  ·  cualquier usuario autenticado
+Avisos recibidos por el usuario, del más reciente al más antiguo.
+
+Response 200:
+```json
+[ { "id": "6738f2a1...", "tipo": "ARTISTA_FAVORITO", "canal": "EMAIL",
+    "titulo": "Tu artista favorito viene a tu ciudad",
+    "mensaje": "Los Nuevos se presenta en Tandil el 10/05/2027 21:00: Los Nuevos en vivo. Ya podes comprar tus entradas.",
+    "referencia": "evento:5", "estado": "ENVIADA", "fecha": "2026-11-16T11:40:00" } ]
+```
+
+Los avisos **no se crean por HTTP**: se generan al consumir los mensajes de RabbitMQ (ver `02-arquitectura.md`, sección 11).

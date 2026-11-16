@@ -33,4 +33,8 @@ public interface EntradaRepository extends JpaRepository<Entrada, Long> {
     int cambiarEstadoDelEvento(@Param("eventoId") Long eventoId,
                                @Param("actual") EstadoEntrada actual,
                                @Param("nuevo") EstadoEntrada nuevo);
+
+    @Query("SELECT DISTINCT e.usuarioId FROM Entrada e WHERE e.eventoId = :eventoId AND e.estado = :estado")
+    List<Long> usuariosConEntradasEnEstado(@Param("eventoId") Long eventoId,
+                                           @Param("estado") EstadoEntrada estado);
 }
