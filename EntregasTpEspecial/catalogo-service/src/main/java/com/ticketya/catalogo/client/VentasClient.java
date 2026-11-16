@@ -1,12 +1,15 @@
 package com.ticketya.catalogo.client;
 
 import com.ticketya.catalogo.exception.ServicioNoDisponibleException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.util.List;
 
@@ -28,7 +31,11 @@ public class VentasClient {
     }
 
     // Avisa a ventas que el evento se cancelo, para que pase sus entradas a reintegro.
-    // Devuelve false si no se pudo (ventas caido o con error): el evento igual queda cancelado.
+    // Resiliencia: hasta 3 intentos (ventas lo procesa en forma idempotente, asi que repetirlo es seguro) y
+    // circuit breaker. Fallback: devuelve false; el evento igual queda cancelado y el aviso queda PENDIENTE,
+    // que se reintenta periodicamente (CancelacionService.reintentarAvisosPendientes).
+    @Retry(name = "ventas", fallbackMethod = "cancelacionNoNotificada")
+    @CircuitBreaker(name = "ventas")
     public boolean notificarCancelacion(Long eventoId) {
         try {
             restClient.post()
@@ -36,14 +43,21 @@ public class VentasClient {
                     .retrieve()
                     .toBodilessEntity();
             return true;
-        } catch (Exception e) {
-            log.warn("No se pudo notificar a ventas la cancelacion del evento {}: {}", eventoId, e.getMessage());
-            return false;
+        } catch (RestClientException e) {
+            throw new ServicioNoDisponibleException("Ventas no recibio el aviso de cancelacion: " + e.getMessage());
         }
+    }
+
+    private boolean cancelacionNoNotificada(Long eventoId, Throwable causa) {
+        log.warn("No se pudo notificar a ventas la cancelacion del evento {} (queda pendiente): {}",
+                eventoId, causa.getMessage());
+        return false;
     }
 
     // Ventas por sector de un evento, para el reporte del organizador. Sin ventas no hay reporte posible:
     // si el servicio no responde se informa 503 (no se inventan ceros).
+    @Retry(name = "ventas")
+    @CircuitBreaker(name = "ventas")
     public List<EstadisticaVentasDTO> estadisticas(Long eventoId) {
         try {
             List<EstadisticaVentasDTO> datos = restClient.get()
@@ -52,7 +66,7 @@ public class VentasClient {
                     .body(new ParameterizedTypeReference<List<EstadisticaVentasDTO>>() {
                     });
             return datos == null ? List.of() : datos;
-        } catch (Exception e) {
+        } catch (RestClientException e) {
             log.warn("No se pudieron obtener las ventas del evento {}: {}", eventoId, e.getMessage());
             throw new ServicioNoDisponibleException("El servicio de ventas no responde: no se puede armar el reporte");
         }

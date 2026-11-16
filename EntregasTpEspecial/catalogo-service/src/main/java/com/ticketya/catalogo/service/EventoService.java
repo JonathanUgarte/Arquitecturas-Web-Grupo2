@@ -13,7 +13,11 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import com.ticketya.catalogo.mensajeria.EventoPublicadoEvento;
+import com.ticketya.catalogo.config.CacheConfig;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -59,12 +63,16 @@ public class EventoService {
         return toDTO(eventoRepo.save(e));
     }
 
+    // Cache: GET /eventos/{id} es lo mas consultado en una apertura de venta
+    @Cacheable(value = CacheConfig.EVENTO, key = "#p0")
     @Transactional(readOnly = true)
     public EventoDTO obtener(Long id) {
         return toDTO(buscar(id));
     }
 
     // ---------- Precios por sector (solo en BORRADOR) ----------
+    @Caching(evict = {@CacheEvict(value = CacheConfig.EVENTO, key = "#p0"),
+            @CacheEvict(value = CacheConfig.BUSQUEDAS, allEntries = true)})
     @Transactional
     public EventoDTO configurarPrecios(Long eventoId, PreciosRequest req) {
         Evento e = buscar(eventoId);
@@ -97,6 +105,8 @@ public class EventoService {
     }
 
     // ---------- Publicar: BORRADOR -> PUBLICADO (requiere precio en todos los sectores) ----------
+    @Caching(evict = {@CacheEvict(value = CacheConfig.EVENTO, key = "#p0"),
+            @CacheEvict(value = CacheConfig.BUSQUEDAS, allEntries = true)})
     @Transactional
     public EventoDTO publicar(Long id) {
         Evento e = buscar(id);
@@ -121,6 +131,8 @@ public class EventoService {
     }
 
     // ---------- Suspender (administrador) ----------
+    @Caching(evict = {@CacheEvict(value = CacheConfig.EVENTO, key = "#p0"),
+            @CacheEvict(value = CacheConfig.BUSQUEDAS, allEntries = true)})
     @Transactional
     public EventoDTO suspender(Long id) {
         Evento e = buscar(id);
@@ -132,6 +144,8 @@ public class EventoService {
     }
 
     // ---------- Cancelar (administrador). El aviso a ventas lo hace CancelacionService, fuera de la transaccion ----------
+    @Caching(evict = {@CacheEvict(value = CacheConfig.EVENTO, key = "#p0"),
+            @CacheEvict(value = CacheConfig.BUSQUEDAS, allEntries = true)})
     @Transactional
     public EventoDTO cancelar(Long id, String motivo) {
         Evento e = buscar(id);
@@ -144,6 +158,9 @@ public class EventoService {
     }
 
     // ---------- Busqueda por multiples criterios ----------
+    // Cache por combinacion de filtros, 60 s como maximo (ademas se invalida cuando cambia algun evento)
+    @Cacheable(value = CacheConfig.BUSQUEDAS,
+            key = "#p0 + '|' + #p1 + '|' + #p2 + '|' + #p3 + '|' + #p4 + '|' + #p5 + '|' + #p6")
     @Transactional(readOnly = true)
     public List<EventoResumenDTO> buscar(TipoEvento tipo, String organizador, String participante, String ciudad,
                                          LocalDateTime desde, LocalDateTime hasta, String orden) {
@@ -200,6 +217,17 @@ public class EventoService {
         return new SectorVentaDTO(e.getId(), e.getNombre(), e.getEstado(), e.getFechaHora(),
                 s.getId(), s.getNombre(), s.getTipo(), s.capacidadTotal(),
                 s.getFilas(), s.getAsientosPorFila(), p.getPrecio(), e.usaFilaVirtual());
+    }
+
+    // ---------- Aviso de cancelacion a ventas (consistencia eventual) ----------
+    @Transactional
+    public void registrarAvisoCancelacion(Long eventoId, boolean notificado) {
+        buscar(eventoId).setAvisoCancelacionPendiente(!notificado);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> eventosConAvisoCancelacionPendiente() {
+        return eventoRepo.findByAvisoCancelacionPendienteTrue().stream().map(Evento::getId).toList();
     }
 
     // ---------- Dueno del evento ----------

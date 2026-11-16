@@ -4,7 +4,7 @@
 #  - PostgreSQL (una base por servicio) para auth, catalogo y ventas, que necesitan transacciones.
 #  - MongoDB (configuracion de la catedra) para preferencias y notificaciones, cada uno con su propia base.
 #  - RabbitMQ para la comunicacion asincronica (eventos de compras, cancelaciones y publicaciones).
-#  - Redis para la fila virtual (fila-service): orden de llegada y turnos con vencimiento.
+#  - Redis para la fila virtual (fila-service) y la cache del catalogo.
 # Solo el gateway publica un puerto hacia afuera (8080): los servicios quedan en la red interna de Docker,
 # asi nadie puede saltearse la validacion del JWT llamando directo a un servicio.
 # MongoDB, RabbitMQ y Redis se publican solo en 127.0.0.1 (no en la red) para usar herramientas de desarrollo
@@ -84,7 +84,8 @@ services:
       timeout: 5s
       retries: 20
 
-  # Fila virtual: estructura en memoria (sorted set + claves con TTL); no necesita persistencia
+  # Redis: la fila virtual (fila-service) y la cache del catalogo (claves con prefijo "catalogo:").
+  # Datos efimeros en memoria (sorted set + claves con TTL); no necesita persistencia.
   redis:
     image: redis:7-alpine
     ports:
@@ -117,10 +118,13 @@ services:
       SPRING_H2_CONSOLE_ENABLED: "false"
       VENTAS_URL: http://ventas-service:8082
       SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_DATA_REDIS_HOST: redis
     depends_on:
       catalogo-db:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   ventas-service:

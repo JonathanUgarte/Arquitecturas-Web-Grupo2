@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TicketYa - Entrega 2",
-    "description": "Todos los pedidos entran por el API Gateway (baseUrl). Seguridad con JWT: ejecutar primero la carpeta \"0. Autenticación\", que hace login con un usuario de cada rol y guarda los tokens en variables de la colección. Cada request usa \"Authorization: Bearer {{token...}}\" según el rol que corresponde. Los headers X-Usuario-Id y X-Rol ya no se envían: el gateway los completa a partir del token. Orden sugerido: carpetas 0 a 5 (la 4 necesita MongoDB y RabbitMQ; la 5, Redis). La 6 son comprobaciones de rutas internas. Usuarios de prueba (clave ticketya123): cliente@, cliente2@, organizador@, admin@ y acceso@ticketya.com (personal de acceso).",
+    "description": "Todos los pedidos entran por el API Gateway (baseUrl). Seguridad con JWT: ejecutar primero la carpeta \"0. Autenticación\", que hace login con un usuario de cada rol y guarda los tokens en variables de la colección. Cada request usa \"Authorization: Bearer {{token...}}\" según el rol que corresponde. Los headers X-Usuario-Id y X-Rol ya no se envían: el gateway los completa a partir del token. Orden sugerido: carpetas 0 a 6 (la 4 necesita MongoDB y RabbitMQ; la 5 y la 6, Redis). La 7 son comprobaciones de rutas internas. Usuarios de prueba (clave ticketya123): cliente@, cliente2@, organizador@, admin@ y acceso@ticketya.com (personal de acceso).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -3943,7 +3943,364 @@
       ]
     },
     {
-      "name": "6. Rutas internas (comprobación)",
+      "name": "6. Resiliencia y caché",
+      "description": "La pasarela de pagos simulada falla a pedido: TARJETA_INESTABLE (falla el primer intento: el reintento automático la aprueba sin cobrar dos veces) y PASARELA_CAIDA (no responde: tras 3 intentos se informa 503 y la reserva NO se pierde). El detalle de un evento se sirve desde la caché de Redis. Ejecutar después de las carpetas 0 a 5.",
+      "item": [
+        {
+          "name": "Reservar 1 lugar (cliente 2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set(\"reservaResilienteId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente2}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoFavoritoId}}\",\n  \"sectorId\": \"{{sectorCampo}}\",\n  \"cantidad\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Pagar con TARJETA_INESTABLE: la pasarela falla una vez, se reintenta solo y se aprueba",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"claveInestable\", \"claveInestable-\" + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Aprobada tras el reintento automático\", function () { pm.expect(pm.response.json().estado).to.eql(\"APROBADA\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente2}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{claveInestable}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/{{reservaResilienteId}}/pago",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas",
+                "{{reservaResilienteId}}",
+                "pago"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medioPago\": \"TARJETA_INESTABLE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reservar otro lugar (cliente 2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set(\"reservaCaidaId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente2}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoFavoritoId}}\",\n  \"sectorId\": \"{{sectorCampo}}\",\n  \"cantidad\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Pagar con PASARELA_CAIDA -> 503, pero la reserva sigue vigente",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"claveCaida\", \"claveCaida-\" + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 503\", function () { pm.response.to.have.status(503); });",
+                  "pm.test(\"Avisa que la reserva sigue vigente\", function () { pm.expect(pm.response.json().mensaje).to.include(\"sigue vigente\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente2}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{claveCaida}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/{{reservaCaidaId}}/pago",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas",
+                "{{reservaCaidaId}}",
+                "pago"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medioPago\": \"PASARELA_CAIDA\"\n}"
+            }
+          }
+        },
+        {
+          "name": "La reserva sigue PENDIENTE (no se perdieron los lugares)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"PENDIENTE\", function () { pm.expect(pm.response.json().estado).to.eql(\"PENDIENTE\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente2}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/{{reservaCaidaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas",
+                "{{reservaCaidaId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reintentar el pago con otra clave: aprobado",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"claveReintento\", \"claveReintento-\" + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"APROBADA\", function () { pm.expect(pm.response.json().estado).to.eql(\"APROBADA\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente2}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{claveReintento}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/{{reservaCaidaId}}/pago",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas",
+                "{{reservaCaidaId}}",
+                "pago"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medioPago\": \"TARJETA\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Detalle de evento (2da lectura: sale de la caché de Redis)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Mismo evento\", function () { pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get(\"eventoFavoritoId\"))); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/{{eventoFavoritoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos",
+                "{{eventoFavoritoId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Rutas internas (comprobación)",
       "item": [
         {
           "name": "Ruta interna por el gateway -> 404 (no se publica)",
@@ -4102,6 +4459,26 @@
     },
     {
       "key": "reservaFilaId",
+      "value": ""
+    },
+    {
+      "key": "reservaResilienteId",
+      "value": ""
+    },
+    {
+      "key": "reservaCaidaId",
+      "value": ""
+    },
+    {
+      "key": "claveInestable",
+      "value": ""
+    },
+    {
+      "key": "claveCaida",
+      "value": ""
+    },
+    {
+      "key": "claveReintento",
       "value": ""
     }
   ]

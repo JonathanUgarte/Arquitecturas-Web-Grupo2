@@ -1,5 +1,6 @@
 package com.ticketya.catalogo.exception;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -46,6 +47,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<ErrorDTO> formatoInvalido(Exception ex) {
         return respuesta(HttpStatus.BAD_REQUEST, "Parametro o cuerpo con formato invalido");
+    }
+
+    // Circuit breaker abierto: ventas viene fallando y no se lo llama por unos segundos
+    @ExceptionHandler(CallNotPermittedException.class)
+    public ResponseEntity<ErrorDTO> circuitoAbierto(CallNotPermittedException ex) {
+        return respuesta(HttpStatus.SERVICE_UNAVAILABLE, "El servicio " + ex.getCausingCircuitBreakerName()
+                + " no esta disponible por el momento (circuito abierto): reintente en unos segundos");
     }
 
     @ExceptionHandler(ServicioNoDisponibleException.class)

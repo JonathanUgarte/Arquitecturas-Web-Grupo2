@@ -1,7 +1,7 @@
 package com.ticketya.ventas.service;
 
 import com.ticketya.ventas.client.CatalogoClient;
-import com.ticketya.ventas.client.PasarelaPagoMock;
+import com.ticketya.ventas.client.ClientePasarela;
 import com.ticketya.ventas.client.ResultadoPago;
 import com.ticketya.ventas.config.VentasProperties;
 import com.ticketya.ventas.dto.*;
@@ -35,7 +35,7 @@ public class ReservaService {
     private static final String ESTADO_PUBLICADO = "PUBLICADO";
 
     private final CatalogoClient catalogoClient;
-    private final PasarelaPagoMock pasarela;
+    private final ClientePasarela pasarela;
     private final TransactionTemplate tx;
     private final Clock clock;
     private final VentasProperties props;
@@ -197,16 +197,28 @@ public class ReservaService {
 
         // Fase 2 (SIN transaccion): cobrar en la pasarela
         ResultadoPago cobro;
+        // Con reintentos y circuit breaker (ClientePasarela). Todos los reintentos de este cobro usan la MISMA
+        // referencia unica, asi la pasarela no cobra dos veces si un intento llego a cobrar pero no respondio a tiempo.
+        String referencia = "compra-" + inicio.compraId() + "-" + UUID.randomUUID();
         try {
-            cobro = pasarela.cobrar(inicio.monto(), req.medioPago());
+            cobro = pasarela.cobrar(referencia, inicio.monto(), req.medioPago());
         } catch (RuntimeException e) {
-            log.warn("Error al cobrar en la pasarela: {}", e.getMessage());
-            cobro = new ResultadoPago(false, null, "La pasarela de pagos no esta disponible");
+            // Agotados los reintentos, o circuito abierto: la pasarela no responde
+            log.warn("La pasarela no respondio para la compra {}: {}", inicio.compraId(), e.getMessage());
+            cobro = ResultadoPago.noDisponible("La pasarela de pagos no esta disponible");
         }
         final ResultadoPago resultado = cobro;
 
         // Fase 3 (transaccion corta): emitir las entradas o liberar los lugares
         CompraDTO compra = tx.execute(status -> confirmarPago(inicio.compraId(), resultado));
+
+        if (resultado.pasarelaNoDisponible()) {
+            // Fallback: NO se pierde la reserva. Se informa 503 y el cliente reintenta el pago con otra clave.
+            LocalDateTime vence = tx.execute(status -> reservaRepo.findById(compra.reservaId()).orElseThrow().getVenceEn());
+            throw new ServicioNoDisponibleException("La pasarela de pagos no responde en este momento. Tu reserva sigue "
+                    + "vigente hasta las " + vence.toLocalTime().withNano(0)
+                    + ": reintenta el pago con una nueva Idempotency-Key");
+        }
 
         // Fase 4 (asincronica): avisar la compra confirmada a notificaciones y preferencias.
         // Solo en el primer pago aprobado (un reintento con la misma clave sale antes y no vuelve a avisar).
@@ -281,6 +293,15 @@ public class ReservaService {
             c.setEstado(EstadoCompra.APROBADA);
             r.setEstado(EstadoReserva.CONFIRMADA);
             return compraDTO(c, emitirEntradas(c, r));
+        }
+
+        if (resultado.pasarelaNoDisponible()) {
+            // La pasarela no respondio (no es un rechazo): la reserva vuelve a PENDIENTE y conserva los lugares
+            // hasta su vencimiento, para que el cliente pueda reintentar el pago.
+            c.setEstado(EstadoCompra.RECHAZADA);
+            c.setMotivoRechazo(resultado.motivo());
+            r.setEstado(EstadoReserva.PENDIENTE);
+            return compraDTO(c, List.of());
         }
 
         // Pago rechazado: la reserva se cancela y los lugares vuelven a estar disponibles

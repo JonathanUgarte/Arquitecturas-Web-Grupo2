@@ -1,5 +1,6 @@
 package com.ticketya.ventas.exception;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,14 @@ import java.util.stream.Collectors;
 // Traduce las excepciones del Service a codigos HTTP
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    // Circuit breaker abierto: el servicio externo viene fallando y no se lo llama por unos segundos
+    @ExceptionHandler(CallNotPermittedException.class)
+    public ResponseEntity<ErrorDTO> circuitoAbierto(CallNotPermittedException ex) {
+        String servicio = ex.getCausingCircuitBreakerName();
+        return respuesta(HttpStatus.SERVICE_UNAVAILABLE, "El servicio " + servicio
+                + " no esta disponible por el momento (circuito abierto): reintente en unos segundos");
+    }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorDTO> notFound(NotFoundException ex) {

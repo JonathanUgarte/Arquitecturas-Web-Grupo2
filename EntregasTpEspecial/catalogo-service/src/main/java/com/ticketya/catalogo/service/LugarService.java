@@ -10,7 +10,10 @@ import com.ticketya.catalogo.model.Lugar;
 import com.ticketya.catalogo.model.Sector;
 import com.ticketya.catalogo.model.TipoSector;
 import com.ticketya.catalogo.repository.LugarRepository;
+import com.ticketya.catalogo.config.CacheConfig;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +25,7 @@ public class LugarService {
 
     private final LugarRepository lugarRepo;
 
+    @CacheEvict(value = CacheConfig.LUGARES, allEntries = true)
     @Transactional
     public LugarDTO crear(LugarRequest req) {
         Lugar lugar = new Lugar();
@@ -52,6 +56,7 @@ public class LugarService {
         return toDTO(lugar);
     }
 
+    @Cacheable(value = CacheConfig.LUGARES, key = "'todos'")
     @Transactional(readOnly = true)
     public List<LugarDTO> listar() {
         return lugarRepo.findAll().stream().map(LugarService::toDTO).toList();

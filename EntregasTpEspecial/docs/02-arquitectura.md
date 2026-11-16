@@ -180,8 +180,8 @@ los reintentos programados y el circuit breaker se completan en la entrega 2.
 | Seguridad con JWT y roles | E2 (hecho) |
 | Base NoSQL en al menos un servicio | E2 (hecho: MongoDB en preferencias y notificaciones) |
 | Consistencia entre servicios y compensaciones | E2 |
-| Resiliencia: reintentos, timeouts y fallback | E1 (timeouts), E2 (reintentos y fallback) |
-| Caché de catálogo (y por qué no se cachea la disponibilidad) | E2 |
+| Resiliencia: reintentos, timeouts y fallback | E1 (timeouts), E2 (hecho: Resilience4j, sección 16) |
+| Caché de catálogo (y por qué no se cachea la disponibilidad) | E2 (hecho: Redis, sección 17) |
 | Docker y docker-compose | E2 (hecho) |
 | Prueba de carga | E2 |
 
@@ -389,3 +389,57 @@ sequenceDiagram
 **Simplificaciones justificadas:** tamaño de tanda e intervalo fijos (configurables por variable de entorno, no por
 evento); el cliente consulta su turno (*polling*) en lugar de recibir un aviso *push*; un turno no se "consume" al
 reservar (vale 10 minutos, y el límite de 4 entradas por cliente y evento sigue aplicando).
+
+## 16. Resiliencia ante fallas de otros servicios (entrega 2)
+
+Toda llamada a otro servicio puede fallar o tardar. Las llamadas importantes usan **Resilience4j** (anotaciones
+`@Retry` y `@CircuitBreaker`, configuradas en `application.properties`):
+
+| Llamada | Timeout | Reintentos | Circuit breaker | Si sigue fallando (fallback) |
+|---|---|---|---|---|
+| ventas → catálogo (datos del sector al reservar) | 2 s conexión, 3 s respuesta | 3 intentos (200 ms, 400 ms), solo ante caídas o 5xx; un 404 no se reintenta | se abre con 50% de fallas en las últimas 20 llamadas (mínimo 10), 15 s | **503** al instante. No se usan datos viejos: para vender hacen falta el estado y el precio actuales. |
+| ventas → pasarela de pagos (cobro) | (simulada) | 3 intentos (300 ms, 600 ms) | igual, 30 s | **503 y la reserva se conserva** (vuelve a PENDIENTE con sus lugares hasta que vence): el cliente reintenta el pago con otra clave. |
+| ventas → pasarela (reintegro de una devolución) | (simulada) | 3 intentos | el de la pasarela | La devolución queda aprobada con el reintegro **pendiente**, y una tarea lo reintenta cada minuto. |
+| catálogo → ventas (aviso de cancelación) | 2 s / 3 s | 3 intentos (ventas lo procesa en forma idempotente) | se abre con 50% de fallas, 15 s | El evento queda cancelado con el aviso **pendiente**, y una tarea lo reenvía cada 30 s hasta que ventas lo confirme. |
+| catálogo → ventas (datos para reportes) | 2 s / 3 s | 3 intentos | el de ventas | **503**: el reporte no se arma con ceros falsos. |
+| notificaciones, preferencias, fila → catálogo/preferencias | 2 s / 3 s | — (los mensajes de RabbitMQ se reintentan 3 veces y van a la cola de fallidos) | — | Nombre del evento: se usa el id. Historial: se guarda sin datos del evento. |
+
+**Por qué cada mecanismo:**
+- **Timeout:** ninguna llamada espera indefinidamente; un hilo bloqueado es un cliente menos atendido en la venta masiva.
+- **Reintento con espera creciente:** muchas fallas son momentáneas (un reinicio, un pico). Solo se reintenta lo que es
+  seguro repetir: el cobro lleva una **referencia única por compra** (la pasarela no cobra dos veces la misma compra),
+  y los avisos de cancelación son idempotentes en ventas. Un error de negocio (404, pago rechazado) no se reintenta.
+- **Circuit breaker:** si un servicio viene fallando, seguir llamándolo solo suma esperas y carga. El circuito "abierto"
+  responde 503 al instante, y pasado un tiempo deja pasar unas pocas llamadas de prueba ("semiabierto") para ver si
+  el servicio se recuperó.
+- **Tareas de recuperación** (consistencia eventual): lo que no se pudo completar porque otro servicio estaba caído
+  (reintegros, avisos de cancelación) queda registrado como pendiente y se completa solo cuando el servicio vuelve.
+
+La pasarela simulada permite probarlo: `TARJETA_INESTABLE` falla el primer intento (el reintento la aprueba, cobrando
+una sola vez) y `PASARELA_CAIDA` no responde nunca (`PagoResilienteTest`, carpeta 6 de Postman). Contra catálogo se
+prueba con un servidor HTTP simulado que devuelve errores (`ResilienciaCatalogoTest`, `ResilienciaVentasTest`).
+
+## 17. Caché (entrega 2)
+
+El catálogo cachea en **Redis** (compartido por todas sus instancias) lo que se lee masivamente y cambia poco:
+
+| Caché | Qué guarda | Duración | Se invalida cuando |
+|---|---|---|---|
+| `evento` | Detalle de un evento (`GET /eventos/{id}`) | 10 min | se cambian sus precios, se publica, suspende o cancela |
+| `busquedas` | Resultado de `GET /eventos` para cada combinación de filtros | 60 s | cualquier evento se publica, suspende, cancela o cambia precios |
+| `lugares` | Listado de lugares | 10 min | se crea un lugar |
+
+- Se usa *cache-aside* con las anotaciones de Spring (`@Cacheable` / `@CacheEvict`): la primera lectura va a la base y
+  guarda el resultado; las siguientes salen de Redis hasta que vence o se invalida.
+- La duración corta de las búsquedas acota cuánto puede verse un dato desactualizado (por ejemplo, el "precio desde").
+- **Si Redis se cae, el catálogo sigue funcionando**: un `CacheErrorHandler` registra el problema y se lee de la base.
+- En una apertura de venta, miles de clientes consultan el mismo evento: con la caché, esas lecturas no llegan a
+  PostgreSQL y la base queda libre para lo que sí la necesita.
+
+**Qué NO se cachea, y por qué:**
+- **La disponibilidad de asientos y el cupo** (ventas): durante una venta masiva cambian a cada segundo. Un dato
+  cacheado mostraría lugares libres que ya se vendieron, y el cliente fallaría recién al reservar. Además, la garantía de
+  no doble venta depende de leer el estado real dentro de la transacción.
+- **El estado y el precio que ventas pide para reservar** (`/interno/eventos/{e}/sectores/{s}`): se vende con el dato
+  actual. Si el administrador suspende o cancela un evento, no se puede seguir vendiendo por un valor cacheado.
+- **Reportes y "mis eventos"**: los usa un organizador por vez y tienen que estar al día.

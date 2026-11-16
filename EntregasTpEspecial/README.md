@@ -4,7 +4,7 @@ Plataforma de venta de entradas (ticketera virtual) basada en **microservicios c
 Trabajo práctico de Arquitectura Web (TUDAI). **Entrega 1** (núcleo: publicación, búsqueda y compra sin doble venta) completa;
 **Entrega 2** (sistema completo) en curso: ya incluye seguridad con JWT y roles, despliegue con Docker, MongoDB,
 preferencias y recomendaciones, notificaciones asincrónicas con RabbitMQ, control de acceso con QR, reportes para
-organizadores y fila virtual con Redis.
+organizadores, fila virtual con Redis, resiliencia (reintentos y circuit breaker) y caché del catálogo.
 
 > Integrantes: Agustin pagola, Agustin Rebord, Jonatan Ugarte
 
@@ -36,6 +36,11 @@ organizadores y fila virtual con Redis.
   organizador solo ve y modifica *sus* eventos.
 - **Fila virtual (6)** en un nuevo `fila-service` con **Redis**: en eventos de alta demanda, los clientes hacen la fila,
   ven su posición y se los habilita por tandas, en orden de llegada, con un turno para comprar.
+- **Resiliencia** con Resilience4j: timeouts, reintentos y circuit breaker hacia catálogo, ventas y la pasarela de pagos.
+  Si la pasarela no responde, la reserva no se pierde; los reintegros y avisos de cancelación que fallan se completan
+  solos cuando el otro servicio vuelve.
+- **Caché del catálogo en Redis**: detalle de eventos, búsquedas y lugares, con invalidación al cambiar un evento. La
+  disponibilidad de asientos **no** se cachea (ver `docs/02-arquitectura.md`, sección 17).
 - **Comunicación asincrónica con RabbitMQ**: ventas y catálogo publican eventos (`compra.confirmada`, `evento.cancelado`,
   `evento.publicado`) que consumen preferencias y notificaciones, con reintentos y cola de mensajes fallidos.
 
@@ -96,14 +101,15 @@ Docker, así nadie puede saltearse la validación del JWT llamando directo a un 
 
 ### Ejecución
 
-`preferencias-service` y `notificaciones-service` necesitan MongoDB y RabbitMQ, `fila-service` necesita Redis, y catálogo y
-ventas usan RabbitMQ para publicar eventos. Sin Docker para los servicios, se pueden levantar solo esos dos contenedores:
+`preferencias-service` y `notificaciones-service` necesitan MongoDB y RabbitMQ, `fila-service` necesita Redis, catálogo y
+ventas usan RabbitMQ para publicar eventos, y catálogo usa Redis como caché. Sin Docker para los servicios, se pueden levantar solo esos dos contenedores:
 
 ```bash
 docker compose up -d mongo rabbitmq redis
 ```
 
-(Si RabbitMQ no está levantado, catálogo y ventas funcionan igual: solo no se envían los avisos.)
+(Si RabbitMQ no está levantado, catálogo y ventas funcionan igual: solo no se envían los avisos. Si Redis no está, el
+catálogo funciona sin caché.)
 
 Con IntelliJ: abrir el repositorio, agregar cada `pom.xml` como proyecto Maven y ejecutar las clases `main`
 **en este orden**: `AuthServiceApplication`, `CatalogoServiceApplication`, `VentasServiceApplication`,
@@ -173,6 +179,8 @@ Para empezar de cero: sin Docker, detener los servicios y borrar la carpeta `dat
    La carpeta **5. Acceso con QR, reportes y fila virtual** compra una entrada y la valida en la puerta (y prueba que no
    entra dos veces), muestra los reportes del organizador, y hace la fila de un evento de alta demanda hasta obtener
    el turno y reservar con él (espera unos segundos a que salga la tanda).
+   La carpeta **6. Resiliencia y caché** paga con `TARJETA_INESTABLE` (la pasarela falla una vez y el reintento automático
+   la aprueba) y con `PASARELA_CAIDA` (503, pero la reserva sigue vigente y el pago se reintenta).
 
 ### Autenticación (entrega 2)
 
@@ -194,7 +202,8 @@ Para empezar de cero: sin Docker, detener los servicios y borrar la carpeta `dat
 | `GET /notificaciones` | Cualquier usuario autenticado (ve las suyas) |
 
 Sin token (o con un token vencido o mal firmado) la respuesta es **401**; con un rol que no corresponde, **403**.
-Para ver un pago rechazado se usa el medio de pago `TARJETA_RECHAZADA`.
+Medios de pago de la pasarela simulada: `TARJETA_RECHAZADA` (rechazo definitivo, 402), `TARJETA_INESTABLE` (falla el primer
+intento y el reintento automático la aprueba) y `PASARELA_CAIDA` (no responde: 503 y la reserva se conserva).
 
 ## Tests
 
@@ -220,6 +229,12 @@ Desde cada carpeta de servicio: `mvn test` (o, en IntelliJ, clic derecho sobre `
 | ventas-service | `EstadisticasTest` | Vendidas, utilizadas, devueltas y a reintegrar por sector, con sus montos |
 | ventas-service | `FilaVirtualTest` | En un evento con fila: sin turno, turno de otro cliente, de otro evento, vencido o falsificado → 403; con turno válido reserva |
 | catalogo-service | `ReporteYDuenioTest` | Ocupación y recaudación por sector y total, sectores sin ventas, ventas caído (503), otro organizador (403), admin, mis eventos |
+| ventas-service | `PagoResilienteTest` | Reintento ante una falla momentánea sin cobrar dos veces, pasarela caída (503 y reserva conservada), circuito abierto (no se llama más a la pasarela) y reintento programado de reintegros |
+| ventas-service | `ResilienciaCatalogoTest` | Contra un catálogo simulado (servidor HTTP): reintentos, un 404 no se reintenta, se rinde a los 3 intentos y el circuito se abre |
+| catalogo-service | `ResilienciaVentasTest` | Aviso de cancelación reintentado, fallback si ventas no responde, reportes con reintento y 503 |
+| catalogo-service | `CancelacionPendienteTest` | Un aviso de cancelación no recibido queda pendiente y se reenvía hasta que ventas lo confirma |
+| catalogo-service | `CacheTest` | El detalle y las búsquedas salen de la caché y se invalidan al cambiar un evento; lugares |
+| catalogo-service | `SerializacionCacheTest` | Lo que se guarda en Redis se lee igual (fechas, listas, records) |
 | fila-service | `FilaServiceTest` * | Contra Redis real: orden de llegada, reingreso sin perder el lugar, tandas en orden, una sola tanda por intervalo, turno firmado, salir, eventos sin fila |
 
 \* Usan **Testcontainers**: levantan MongoDB, RabbitMQ o Redis reales en contenedores, así que necesitan **Docker Desktop abierto**.
@@ -266,7 +281,8 @@ Las limitaciones conocidas están detalladas en `docs/02-arquitectura.md`.
 | Base NoSQL (MongoDB), preferencias y recomendaciones, notificaciones | Hecho |
 | Comunicación asincrónica (RabbitMQ) | Hecho |
 | Control de acceso con QR, reportes para organizadores, fila virtual (Redis) | Hecho |
-| Caché, resiliencia (Circuit Breaker), compensaciones (Saga), log centralizado | Pendiente |
+| Resiliencia (timeouts, reintentos, circuit breaker, fallback) y caché del catálogo | Hecho |
+| Compensaciones (Saga) documentadas, log centralizado | Pendiente |
 | Pruebas de integración entre servicios y prueba de carga | Pendiente |
 
 ## Uso de herramientas de IA

@@ -20,4 +20,6 @@ public interface DevolucionRepository extends JpaRepository<Devolucion, Long> {
     boolean existsByEntradaIdAndEstado(Long entradaId, EstadoDevolucion estado);
 
     List<Devolucion> findByEstadoOrderBySolicitadaEnAsc(EstadoDevolucion estado);
+
+    List<Devolucion> findByEstadoAndReintegroSolicitadoFalse(EstadoDevolucion estado);
 }

@@ -54,6 +54,9 @@ public class Evento {
     // Usuario (de auth-service) que creo el evento: solo el puede configurarlo y ver sus reportes (ademas del admin)
     private Long organizadorId;
 
+    // Cancelado pero ventas todavia no recibio el aviso (estaba caido): se reintenta periodicamente
+    private Boolean avisoCancelacionPendiente;
+
     // Eventos de alta demanda: la compra exige un turno de la fila virtual (fila-service)
     private Boolean filaVirtual;
 

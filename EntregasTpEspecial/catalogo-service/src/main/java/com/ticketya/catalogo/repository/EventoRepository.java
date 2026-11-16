@@ -11,4 +11,6 @@ public interface EventoRepository extends JpaRepository<Evento, Long>, JpaSpecif
     List<Evento> findByOrganizadorIdOrderByFechaHoraAsc(Long organizadorId);
 
     List<Evento> findAllByOrderByFechaHoraAsc();
+
+    List<Evento> findByAvisoCancelacionPendienteTrue();
 }

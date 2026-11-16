@@ -1,6 +1,6 @@
 package com.ticketya.ventas.service;
 
-import com.ticketya.ventas.client.PasarelaPagoMock;
+import com.ticketya.ventas.client.ClientePasarela;
 import com.ticketya.ventas.dto.DevolucionDTO;
 import com.ticketya.ventas.dto.DevolucionRequest;
 import com.ticketya.ventas.exception.ConflictException;
@@ -34,7 +34,7 @@ public class DevolucionService {
     private final EntradaRepository entradaRepo;
     private final AsientoOcupadoRepository asientoRepo;
     private final StockZonaRepository stockRepo;
-    private final PasarelaPagoMock pasarela;
+    private final ClientePasarela pasarela;
     private final TransactionTemplate tx;
     private final Clock clock;
 
@@ -81,7 +81,8 @@ public class DevolucionService {
         // 2. fuera de la transaccion: pedir el reintegro a la pasarela
         boolean resultado;
         try {
-            resultado = pasarela.reintegrar(datos.monto(), datos.transaccionPago());
+            pasarela.reintegrar(datos.monto(), datos.transaccionPago());   // con reintentos y circuit breaker
+            resultado = true;
         } catch (RuntimeException e) {
             log.warn("No se pudo pedir el reintegro de la devolucion {}: {}", devolucionId, e.getMessage());
             resultado = false;
@@ -94,6 +95,34 @@ public class DevolucionService {
             d.setReintegroSolicitado(reintegroSolicitado);
             return Mapeos.toDTO(d);
         });
+    }
+
+    // ---------- reintento programado de reintegros pendientes ----------
+    // Si al aprobar una devolucion la pasarela no respondio, el reintegro queda pendiente (reintegroSolicitado = false)
+    // y se vuelve a pedir periodicamente (ver ReintentosProgramados). Devuelve cuantos se pudieron pedir.
+    public int reintentarReintegrosPendientes() {
+        List<Long> pendientes = tx.execute(status ->
+                devolucionRepo.findByEstadoAndReintegroSolicitadoFalse(EstadoDevolucion.APROBADA).stream()
+                        .map(Devolucion::getId).toList());
+        int pedidos = 0;
+        for (Long id : pendientes) {
+            DatosReintegro datos = tx.execute(status -> {
+                Devolucion d = devolucionRepo.findById(id).orElseThrow();
+                return new DatosReintegro(d.getMonto(), d.getEntrada().getCompra().getTransaccionPago());
+            });
+            try {
+                pasarela.reintegrar(datos.monto(), datos.transaccionPago());
+            } catch (RuntimeException e) {
+                log.warn("Reintegro de la devolucion {} sigue pendiente: {}", id, e.getMessage());
+                continue;
+            }
+            tx.executeWithoutResult(status -> devolucionRepo.findById(id).orElseThrow().setReintegroSolicitado(true));
+            pedidos++;
+        }
+        if (pedidos > 0) {
+            log.info("Reintegros pendientes pedidos a la pasarela: {}", pedidos);
+        }
+        return pedidos;
     }
 
     private DatosReintegro aprobarEnBase(Long devolucionId) {

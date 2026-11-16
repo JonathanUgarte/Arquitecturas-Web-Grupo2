@@ -5,6 +5,8 @@ import com.ticketya.ventas.dto.SectorVentaDTO;
 import com.ticketya.ventas.exception.NotFoundException;
 import com.ticketya.ventas.exception.ServicioNoDisponibleException;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
@@ -27,6 +29,13 @@ public class CatalogoClient {
                 .build();
     }
 
+    // Resiliencia (configurada en application.properties):
+    //  - timeouts de conexion (2 s) y de respuesta (3 s): nunca se espera indefinidamente
+    //  - Retry: hasta 3 intentos ante caidas o errores 5xx (ServicioNoDisponibleException); un 404 no se reintenta
+    //  - CircuitBreaker: si catalogo falla seguido, las reservas fallan al instante (503) hasta que se recupere
+    // No hay fallback con datos viejos: para vender hacen falta el estado y el precio ACTUALES del evento.
+    @Retry(name = "catalogo")
+    @CircuitBreaker(name = "catalogo")
     public SectorVentaDTO obtenerSector(Long eventoId, Long sectorId) {
         try {
             return restClient.get()
