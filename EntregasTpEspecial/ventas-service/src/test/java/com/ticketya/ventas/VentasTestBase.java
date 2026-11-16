@@ -66,13 +66,20 @@ abstract class VentasTestBase {
     protected void stubPlatea(String estadoEvento, LocalDateTime fechaEvento) {
         when(catalogoClient.obtenerSector(EVENTO, PLATEA)).thenReturn(new SectorVentaDTO(
                 EVENTO, "Recital de Prueba", estadoEvento, fechaEvento, PLATEA, "Platea",
-                TipoSector.NUMERADO, 50, 5, 10, new BigDecimal("30000")));
+                TipoSector.NUMERADO, 50, 5, 10, new BigDecimal("30000"), false));
     }
 
     protected void stubCampo(int capacidad, LocalDateTime fechaEvento) {
         when(catalogoClient.obtenerSector(EVENTO, CAMPO)).thenReturn(new SectorVentaDTO(
                 EVENTO, "Recital de Prueba", "PUBLICADO", fechaEvento, CAMPO, "Campo",
-                TipoSector.NO_NUMERADO, capacidad, null, null, new BigDecimal("15000")));
+                TipoSector.NO_NUMERADO, capacidad, null, null, new BigDecimal("15000"), false));
+    }
+
+    // Evento de alta demanda: para reservar hace falta el turno de la fila virtual
+    protected void stubPlateaConFila(LocalDateTime fechaEvento) {
+        when(catalogoClient.obtenerSector(EVENTO, PLATEA)).thenReturn(new SectorVentaDTO(
+                EVENTO, "Recital Masivo", "PUBLICADO", fechaEvento, PLATEA, "Platea",
+                TipoSector.NUMERADO, 50, 5, 10, new BigDecimal("30000"), true));
     }
 
     // ---------- atajos ----------

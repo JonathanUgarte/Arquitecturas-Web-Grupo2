@@ -24,6 +24,10 @@ public class ReglasDeAcceso {
     private static final Set<String> PUBLICO = Set.of();
 
     private static final List<Regla> REGLAS = List.of(
+            // ---- reportes y eventos propios del organizador (antes de la regla publica GET /eventos/**) ----
+            new Regla("GET", "/eventos/mis-eventos", Set.of(ORGANIZADOR, ADMIN)),
+            new Regla("GET", "/eventos/*/reporte", Set.of(ORGANIZADOR, ADMIN)),
+
             // ---- publicos: login, registro y navegacion del catalogo ----
             new Regla("POST", "/auth/login", PUBLICO),
             new Regla("POST", "/auth/registro", PUBLICO),
@@ -52,7 +56,14 @@ public class ReglasDeAcceso {
 
             // ---- preferencias y recomendaciones: solo el cliente ----
             new Regla(null, "/preferencias/**", Set.of(CLIENTE)),
-            new Regla(null, "/recomendaciones/**", Set.of(CLIENTE))
+            new Regla(null, "/recomendaciones/**", Set.of(CLIENTE)),
+
+            // ---- control de acceso: el personal que escanea los QR en la puerta (y el admin) ----
+            new Regla("POST", "/accesos", Set.of(ACCESO, ADMIN)),
+
+            // ---- fila virtual: el cliente hace la fila; organizador y admin ven su estado ----
+            new Regla("GET", "/filas/*/estado", Set.of(ORGANIZADOR, ADMIN)),
+            new Regla(null, "/filas/**", Set.of(CLIENTE))
 
             // /notificaciones: no tiene regla, alcanza con estar autenticado (cada uno ve las suyas)
     );

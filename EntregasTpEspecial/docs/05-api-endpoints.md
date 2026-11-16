@@ -14,6 +14,7 @@ auth-service (ejecución local): `http://localhost:8083/swagger-ui.html`.
 | `Authorization: Bearer <token>` | Obligatorio en todo endpoint que no sea público. Sin token o con uno inválido: **401**. Con un rol no permitido: **403**. |
 | `X-Usuario-Id`, `X-Rol` | Ya **no** los envía el cliente: el gateway los descarta y los completa a partir del token. Los servicios los leen. |
 | `Idempotency-Key` | Obligatorio en el pago. Una clave por intento de pago. |
+| `X-Turno-Fila` | Solo al reservar en un evento con fila virtual: el turno que da `GET /filas/{eventoId}/turno`. |
 | `X-Correlation-Id` | Opcional: el gateway lo genera si no viene y lo devuelve en la respuesta. |
 
 Endpoints públicos (sin token): `POST /auth/login`, `POST /auth/registro`, y todos los `GET` de `/eventos`, `/lugares`
@@ -402,3 +403,79 @@ Response 200:
 ```
 
 Los avisos **no se crean por HTTP**: se generan al consumir los mensajes de RabbitMQ (ver `02-arquitectura.md`, sección 11).
+
+---
+
+# Control de acceso (ventas-service)
+
+## POST /accesos  ·  ACCESO o ADMIN
+El personal escanea el QR en la puerta del evento. La entrada queda marcada como `USADA`.
+
+| Código | Cuándo |
+|---|---|
+| 200 | Ingreso permitido |
+| 403 | No es personal de acceso ni administrador |
+| 404 | No existe una entrada con ese código |
+| 409 | Ya fue utilizada (indica cuándo), es de otro evento, o no está vigente (devuelta o evento cancelado) |
+
+Request: `{ "eventoId": 5, "codigoQr": "3f6c2a1e-6b0a-4e7e-9a59-2f5b1c7d8e90" }`
+
+Response 200: `{ "resultado": "PERMITIDO", "entradaId": 31, "eventoId": 5, "sectorId": 1, "fila": null, "numero": null, "fechaUso": "2027-05-10T20:15:03" }`
+
+---
+
+# Reportes y eventos del organizador (catalogo-service)
+
+Al crear un evento, quien lo crea queda como su organizador (`organizadorId`). `PUT /eventos/{id}/precios` y
+`POST /eventos/{id}/publicacion` responden **403** si lo intenta otro organizador. `POST /eventos` acepta además
+`"filaVirtual": true` para eventos de alta demanda.
+
+## GET /eventos/mis-eventos  ·  ORGANIZADOR o ADMIN
+Eventos creados por el organizador, en cualquier estado. Un administrador ve todos.
+
+## GET /eventos/{id}/reporte  ·  organizador dueño del evento o ADMIN
+
+| Código | Cuándo |
+|---|---|
+| 200 | Reporte |
+| 403 | No es el organizador del evento ni administrador |
+| 404 | No existe el evento |
+| 503 | El servicio de ventas no responde |
+
+Response 200 (resumido):
+```json
+{ "eventoId": 5, "evento": "Los Nuevos en vivo", "estado": "PUBLICADO", "ciudad": "Tandil",
+  "sectores": [
+    { "sector": "Campo", "tipo": "NO_NUMERADO", "precio": 20000, "capacidad": 5000, "vendidas": 1250,
+      "disponibles": 3750, "ocupacionPorcentaje": 25.0, "utilizadas": 0, "devueltas": 12, "aReintegrar": 0,
+      "recaudacion": 25000000, "montoReintegrado": 240000 },
+    { "sector": "Platea", "tipo": "NUMERADO", "capacidad": 50, "vendidas": 50, "ocupacionPorcentaje": 100.0, "...": "..." } ],
+  "capacidadTotal": 5050, "vendidas": 1300, "devueltas": 12, "aReintegrar": 0, "utilizadas": 0,
+  "ocupacionPorcentaje": 25.7, "recaudacion": 27000000, "montoReintegrado": 240000 }
+```
+
+---
+
+# Fila virtual (fila-service)
+
+## POST /filas/{eventoId}/ingreso  ·  CLIENTE
+| Código | Cuándo |
+|---|---|
+| 200 | En la fila (`ESPERANDO`, con posición y tiempo estimado) o ya `HABILITADO` |
+| 404 | No existe el evento |
+| 409 | El evento no usa fila virtual o no está a la venta |
+
+## GET /filas/{eventoId}/turno  ·  CLIENTE
+```json
+{ "eventoId": 7, "estado": "ESPERANDO", "posicion": 1234, "personasAdelante": 1233, "tiempoEstimadoSegundos": 125,
+  "turno": null, "turnoVenceEn": null, "mensaje": "Estas en la fila: posicion 1234..." }
+```
+Cuando le toca: `"estado": "HABILITADO"`, `"turno": "eyJhbGciOiJIUzI1NiJ9..."` y `"turnoVenceEn"`. Ese turno se envía en el
+header `X-Turno-Fila` de `POST /reservas`. Sin turno, o con uno vencido, de otro usuario o de otro evento, la reserva
+responde **403**. `FUERA_DE_FILA`: no está en la fila o se le venció el turno.
+
+## DELETE /filas/{eventoId}/ingreso  ·  CLIENTE
+Sale de la fila (y pierde el turno). Responde 204.
+
+## GET /filas/{eventoId}/estado  ·  ORGANIZADOR o ADMIN
+`{ "eventoId": 7, "enEspera": 830, "habilitadosEnTotal": 400, "tamanioTanda": 50, "intervaloSegundos": 5, "minutosTurno": 10 }`

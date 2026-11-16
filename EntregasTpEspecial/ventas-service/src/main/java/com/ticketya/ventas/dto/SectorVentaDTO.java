@@ -17,6 +17,8 @@ public record SectorVentaDTO(
         int capacidadTotal,
         Integer filas,
         Integer asientosPorFila,
-        BigDecimal precio
+        BigDecimal precio,
+        // true: evento de alta demanda, para reservar hace falta un turno de la fila virtual
+        boolean filaVirtual
 ) {
 }

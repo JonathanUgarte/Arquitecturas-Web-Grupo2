@@ -83,6 +83,32 @@ class ReglasDeAccesoTest {
             "GET,  /notificaciones,                     ANONIMO,     NO_AUTENTICADO",
             "GET,  /notificaciones,                     CLIENTE,     PERMITIDO",
             "GET,  /notificaciones,                     ORGANIZADOR, PERMITIDO",
+
+            // ---- reportes y eventos propios: organizador y admin (no son publicos aunque empiecen con /eventos) ----
+            "GET,  /eventos/1/reporte,                  ANONIMO,     NO_AUTENTICADO",
+            "GET,  /eventos/1/reporte,                  CLIENTE,     PROHIBIDO",
+            "GET,  /eventos/1/reporte,                  ORGANIZADOR, PERMITIDO",
+            "GET,  /eventos/1/reporte,                  ADMIN,       PERMITIDO",
+            "GET,  /eventos/mis-eventos,                ANONIMO,     NO_AUTENTICADO",
+            "GET,  /eventos/mis-eventos,                ORGANIZADOR, PERMITIDO",
+            "GET,  /eventos/mis-eventos,                ACCESO,      PROHIBIDO",
+
+            // ---- control de acceso con QR ----
+            "POST, /accesos,                            ANONIMO,     NO_AUTENTICADO",
+            "POST, /accesos,                            ACCESO,      PERMITIDO",
+            "POST, /accesos,                            ADMIN,       PERMITIDO",
+            "POST, /accesos,                            CLIENTE,     PROHIBIDO",
+            "POST, /accesos,                            ORGANIZADOR, PROHIBIDO",
+
+            // ---- fila virtual ----
+            "POST,   /filas/7/ingreso,                  ANONIMO,     NO_AUTENTICADO",
+            "POST,   /filas/7/ingreso,                  CLIENTE,     PERMITIDO",
+            "POST,   /filas/7/ingreso,                  ORGANIZADOR, PROHIBIDO",
+            "GET,    /filas/7/turno,                    CLIENTE,     PERMITIDO",
+            "DELETE, /filas/7/ingreso,                  CLIENTE,     PERMITIDO",
+            "GET,    /filas/7/estado,                   ORGANIZADOR, PERMITIDO",
+            "GET,    /filas/7/estado,                   ADMIN,       PERMITIDO",
+            "GET,    /filas/7/estado,                   CLIENTE,     PROHIBIDO",
     })
     void cadaEndpointSoloEsAccesiblePorSusRoles(String metodo, String ruta, String rol,
                                                 ReglasDeAcceso.Decision esperada) {

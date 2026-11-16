@@ -37,4 +37,23 @@ public interface EntradaRepository extends JpaRepository<Entrada, Long> {
     @Query("SELECT DISTINCT e.usuarioId FROM Entrada e WHERE e.eventoId = :eventoId AND e.estado = :estado")
     List<Long> usuariosConEntradasEnEstado(@Param("eventoId") Long eventoId,
                                            @Param("estado") EstadoEntrada estado);
+
+    Optional<Entrada> findByCodigoQr(String codigoQr);
+
+    // Control de acceso: marca la entrada como usada SOLO si es de ese evento y sigue vendida.
+    // Es una unica sentencia atomica: si dos puertas escanean el mismo QR a la vez, la base deja
+    // actualizar a una sola (la otra encuentra 0 filas porque el estado ya no es VENDIDA).
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Entrada e SET e.estado = :usada, e.fechaUso = :ahora " +
+           "WHERE e.codigoQr = :codigoQr AND e.eventoId = :eventoId AND e.estado = :vendida")
+    int marcarComoUsada(@Param("codigoQr") String codigoQr,
+                        @Param("eventoId") Long eventoId,
+                        @Param("vendida") EstadoEntrada vendida,
+                        @Param("usada") EstadoEntrada usada,
+                        @Param("ahora") java.time.LocalDateTime ahora);
+
+    // Reportes: cantidad y recaudacion por sector y estado de un evento
+    @Query("SELECT e.sectorId, e.estado, COUNT(e), SUM(e.precio) FROM Entrada e " +
+           "WHERE e.eventoId = :eventoId GROUP BY e.sectorId, e.estado")
+    List<Object[]> resumenPorSectorYEstado(@Param("eventoId") Long eventoId);
 }

@@ -48,6 +48,7 @@ public class ReservaService {
     private final EntradaRepository entradaRepo;
     private final EventoCanceladoRepository eventoCanceladoRepo;
     private final ApplicationEventPublisher eventos;
+    private final ValidadorDeTurnos validadorDeTurnos;
 
     private record InicioPago(Long compraId, boolean nueva, boolean vencida, BigDecimal monto) {
     }
@@ -56,7 +57,16 @@ public class ReservaService {
     // 1) RESERVAR
     // =====================================================================
     public ReservaDTO reservar(Long usuarioId, ReservaRequest req) {
+        return reservar(usuarioId, req, null);
+    }
+
+    // turnoFila: token de la fila virtual (header X-Turno-Fila). Solo se exige si el evento usa fila virtual.
+    public ReservaDTO reservar(Long usuarioId, ReservaRequest req, String turnoFila) {
         SectorVentaDTO sector = catalogoClient.obtenerSector(req.eventoId(), req.sectorId());   // HTTP, fuera de la tx
+
+        if (sector.filaVirtual()) {
+            validadorDeTurnos.validar(turnoFila, usuarioId, req.eventoId());
+        }
 
         if (!ESTADO_PUBLICADO.equals(sector.estadoEvento())) {
             throw new ConflictException("El evento no esta a la venta (estado " + sector.estadoEvento() + ")");

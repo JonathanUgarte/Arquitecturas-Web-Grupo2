@@ -70,7 +70,7 @@ class EventoServiceTest {
     private EventoDTO borrador(LugarDTO lugar, String nombre, TipoEvento tipo, String organizador,
                                List<String> participantes, LocalDateTime fecha) {
         return eventoService.crear(new EventoRequest(nombre, "descripcion", tipo, organizador,
-                participantes, fecha, lugar.id()));
+                participantes, fecha, lugar.id(), null));
     }
 
     private EventoDTO publicado(LugarDTO lugar, String nombre, TipoEvento tipo, String organizador,

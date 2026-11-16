@@ -50,4 +50,14 @@ public class Evento {
     private EstadoEvento estado = EstadoEvento.BORRADOR;
 
     private String motivoCancelacion;
+
+    // Usuario (de auth-service) que creo el evento: solo el puede configurarlo y ver sus reportes (ademas del admin)
+    private Long organizadorId;
+
+    // Eventos de alta demanda: la compra exige un turno de la fila virtual (fila-service)
+    private Boolean filaVirtual;
+
+    public boolean usaFilaVirtual() {
+        return Boolean.TRUE.equals(filaVirtual);
+    }
 }

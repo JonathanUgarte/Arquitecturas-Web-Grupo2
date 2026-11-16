@@ -18,7 +18,7 @@ public class Entrada {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // codigo QR unico (el lector de acceso lo valida en la entrega 2)
+    // codigo QR unico: es lo que escanea el personal de acceso en el ingreso
     @Column(nullable = false, unique = true)
     private String codigoQr;
 
@@ -51,4 +51,7 @@ public class Entrada {
 
     @Column(nullable = false)
     private LocalDateTime fechaCompra;
+
+    // momento en que se escaneo en el ingreso (estado USADA)
+    private LocalDateTime fechaUso;
 }

@@ -21,11 +21,11 @@ spring:
               predicates:
                 - Path=/lugares/**,/eventos/**
 
-            # ---- ventas-service (8082): reservas, pagos, entradas, devoluciones y disponibilidad ----
+            # ---- ventas-service (8082): reservas, pagos, entradas, devoluciones, disponibilidad y control de acceso ----
             - id: ventas
               uri: ${VENTAS_URL:http://localhost:8082}
               predicates:
-                - Path=/reservas/**,/entradas/**,/devoluciones/**,/disponibilidad/**
+                - Path=/reservas/**,/entradas/**,/devoluciones/**,/disponibilidad/**,/accesos/**
 
             # ---- preferencias-service (8084): preferencias y recomendaciones (MongoDB) ----
             - id: preferencias
@@ -38,6 +38,12 @@ spring:
               uri: ${NOTIFICACIONES_URL:http://localhost:8085}
               predicates:
                 - Path=/notificaciones/**
+
+            # ---- fila-service (8086): fila virtual para eventos de alta demanda (Redis) ----
+            - id: fila
+              uri: ${FILA_URL:http://localhost:8086}
+              predicates:
+                - Path=/filas/**
 
 # IMPORTANTE: las rutas /interno/** (comunicacion entre servicios) NO se publican aqui,
 # por eso no son accesibles desde afuera: el gateway responde 404.

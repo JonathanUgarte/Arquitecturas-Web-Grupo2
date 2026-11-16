@@ -1,6 +1,7 @@
 package com.ticketya.catalogo.service;
 
 import com.ticketya.catalogo.dto.*;
+import com.ticketya.catalogo.exception.ForbiddenException;
 import com.ticketya.catalogo.exception.BadRequestException;
 import com.ticketya.catalogo.exception.ConflictException;
 import com.ticketya.catalogo.exception.NotFoundException;
@@ -35,6 +36,12 @@ public class EventoService {
     // ---------- Crear (siempre en BORRADOR) ----------
     @Transactional
     public EventoDTO crear(EventoRequest req) {
+        return crear(req, null);
+    }
+
+    // organizadorId: el usuario que lo crea (desde el JWT). Queda como dueno del evento.
+    @Transactional
+    public EventoDTO crear(EventoRequest req, Long organizadorId) {
         Lugar lugar = lugarRepo.findById(req.lugarId())
                 .orElseThrow(() -> new NotFoundException("No existe el lugar " + req.lugarId()));
 
@@ -47,6 +54,8 @@ public class EventoService {
         e.setFechaHora(req.fechaHora());
         e.setLugar(lugar);
         e.setEstado(EstadoEvento.BORRADOR);
+        e.setOrganizadorId(organizadorId);
+        e.setFilaVirtual(Boolean.TRUE.equals(req.filaVirtual()));
         return toDTO(eventoRepo.save(e));
     }
 
@@ -190,7 +199,30 @@ public class EventoService {
         Sector s = p.getSector();
         return new SectorVentaDTO(e.getId(), e.getNombre(), e.getEstado(), e.getFechaHora(),
                 s.getId(), s.getNombre(), s.getTipo(), s.capacidadTotal(),
-                s.getFilas(), s.getAsientosPorFila(), p.getPrecio());
+                s.getFilas(), s.getAsientosPorFila(), p.getPrecio(), e.usaFilaVirtual());
+    }
+
+    // ---------- Dueno del evento ----------
+    // Un administrador puede todo; un organizador solo sobre los eventos que creo.
+    @Transactional(readOnly = true)
+    public void verificarPermiso(Long eventoId, Long usuarioId, String rol) {
+        if ("ADMIN".equals(rol)) {
+            buscar(eventoId);   // 404 si no existe
+            return;
+        }
+        Evento e = buscar(eventoId);
+        if (usuarioId == null || !usuarioId.equals(e.getOrganizadorId())) {
+            throw new ForbiddenException("Solo el organizador que creo el evento (o un administrador) puede hacer esto");
+        }
+    }
+
+    // Eventos del organizador en cualquier estado (borradores incluidos). Para un administrador, todos.
+    @Transactional(readOnly = true)
+    public List<EventoResumenDTO> misEventos(Long usuarioId, String rol) {
+        List<Evento> eventos = "ADMIN".equals(rol)
+                ? eventoRepo.findAllByOrderByFechaHoraAsc()
+                : eventoRepo.findByOrganizadorIdOrderByFechaHoraAsc(usuarioId);
+        return eventos.stream().map(this::toResumen).toList();
     }
 
     // ---------- helpers ----------
@@ -206,7 +238,7 @@ public class EventoService {
                 .toList();
         return new EventoDTO(e.getId(), e.getNombre(), e.getDescripcion(), e.getTipo(), e.getOrganizador(),
                 List.copyOf(e.getParticipantes()), e.getFechaHora(), e.getEstado(),
-                LugarService.toDTO(e.getLugar()), precios);
+                LugarService.toDTO(e.getLugar()), precios, e.getOrganizadorId(), e.usaFilaVirtual());
     }
 
     private EventoResumenDTO toResumen(Evento e) {

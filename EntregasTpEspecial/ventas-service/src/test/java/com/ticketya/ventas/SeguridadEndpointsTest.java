@@ -36,6 +36,9 @@ class SeguridadEndpointsTest extends VentasTestBase {
             "GET,    /devoluciones,              SIN_ROL",
             "PUT,    /devoluciones/1/aprobacion, CLIENTE",
             "PUT,    /devoluciones/1/rechazo,    ORGANIZADOR",
+            "POST,   /accesos,                   CLIENTE",
+            "POST,   /accesos,                   ORGANIZADOR",
+            "POST,   /accesos,                   SIN_ROL",
     })
     void rolesNoPermitidosReciben403(String metodo, String ruta, String rol) throws Exception {
         MockHttpServletRequestBuilder pedido = request(HttpMethod.valueOf(metodo), ruta)
@@ -64,6 +67,9 @@ class SeguridadEndpointsTest extends VentasTestBase {
         }
         if (ruta.endsWith("/pago")) {
             return "{\"medioPago\":\"TARJETA\"}";
+        }
+        if (ruta.equals("/accesos")) {
+            return "{\"eventoId\":1,\"codigoQr\":\"x\"}";
         }
         if (ruta.equals("/devoluciones")) {
             return "{\"entradaId\":1,\"motivo\":\"No puedo ir\"}";

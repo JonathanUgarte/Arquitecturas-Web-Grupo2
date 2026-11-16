@@ -16,6 +16,8 @@ public record EventoDTO(
         LocalDateTime fechaHora,
         EstadoEvento estado,
         LugarDTO lugar,
-        List<PrecioSectorDTO> precios
+        List<PrecioSectorDTO> precios,
+        Long organizadorId,
+        boolean filaVirtual
 ) {
 }

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TicketYa - Entrega 2",
-    "description": "Todos los pedidos entran por el API Gateway (baseUrl). Seguridad con JWT: ejecutar primero la carpeta \"0. Autenticación\", que hace login con un usuario de cada rol y guarda los tokens en variables de la colección. Cada request usa \"Authorization: Bearer {{token...}}\" según el rol que corresponde. Los headers X-Usuario-Id y X-Rol ya no se envían: el gateway los completa a partir del token. Orden sugerido: carpetas 0, 1, 2, 3 y 4 (la 4 necesita MongoDB y RabbitMQ). La 5 son comprobaciones de rutas internas. Usuarios de prueba (clave ticketya123): cliente@, cliente2@, organizador@, admin@ y acceso@ticketya.com.",
+    "description": "Todos los pedidos entran por el API Gateway (baseUrl). Seguridad con JWT: ejecutar primero la carpeta \"0. Autenticación\", que hace login con un usuario de cada rol y guarda los tokens en variables de la colección. Cada request usa \"Authorization: Bearer {{token...}}\" según el rol que corresponde. Los headers X-Usuario-Id y X-Rol ya no se envían: el gateway los completa a partir del token. Orden sugerido: carpetas 0 a 5 (la 4 necesita MongoDB y RabbitMQ; la 5, Redis). La 6 son comprobaciones de rutas internas. Usuarios de prueba (clave ticketya123): cliente@, cliente2@, organizador@, admin@ y acceso@ticketya.com (personal de acceso).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -2844,7 +2844,1106 @@
       ]
     },
     {
-      "name": "5. Rutas internas (comprobación)",
+      "name": "5. Acceso con QR, reportes y fila virtual (Redis)",
+      "description": "Ejecutar después de las carpetas 0 a 4 (usa el evento creado en la 4). Control de acceso: el personal escanea el QR de una entrada recién comprada. Reportes: el organizador ve ventas, ocupación y recaudación de sus eventos. Fila virtual: un evento de alta demanda exige un turno de la fila (las tandas salen cada 5 segundos).",
+      "item": [
+        {
+          "name": "Cliente reserva 1 lugar en el Campo del evento de \"Los Nuevos\"",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set(\"reservaQrId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoFavoritoId}}\",\n  \"sectorId\": \"{{sectorCampo}}\",\n  \"cantidad\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Pagar (se emite la entrada con su QR)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"claveQr\", \"pago-qr-\" + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "const compra = pm.response.json();",
+                  "pm.collectionVariables.set(\"codigoQr\", compra.entradas[0].codigoQr);",
+                  "pm.collectionVariables.set(\"entradaQrId\", compra.entradas[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{claveQr}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/{{reservaQrId}}/pago",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas",
+                "{{reservaQrId}}",
+                "pago"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medioPago\": \"TARJETA\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Puerta de OTRO evento escanea el QR -> 409 (y no la consume)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Motivo: otro evento\", function () { pm.expect(pm.response.json().mensaje).to.include(\"otro evento\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAcceso}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accesos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accesos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoId}}\",\n  \"codigoQr\": \"{{codigoQr}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Personal de acceso escanea el QR -> ingreso permitido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"PERMITIDO\", function () { pm.expect(pm.response.json().resultado).to.eql(\"PERMITIDO\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAcceso}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accesos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accesos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoFavoritoId}}\",\n  \"codigoQr\": \"{{codigoQr}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "El mismo QR otra vez -> 409 (ya fue utilizada)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Motivo: ya utilizada\", function () { pm.expect(pm.response.json().mensaje).to.include(\"ya fue utilizada\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAcceso}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accesos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accesos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoFavoritoId}}\",\n  \"codigoQr\": \"{{codigoQr}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "QR inexistente -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404\", function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAcceso}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accesos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accesos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoFavoritoId}}\",\n  \"codigoQr\": \"codigo-falso\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Un cliente no puede validar accesos -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accesos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accesos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoFavoritoId}}\",\n  \"codigoQr\": \"{{codigoQr}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Devolver una entrada ya usada -> 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 409\", function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/devoluciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "devoluciones"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entradaId\": \"{{entradaQrId}}\",\n  \"motivo\": \"Ya entre\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Organizador: mis eventos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Incluye el evento que creó\", function () {",
+                  "    const ids = pm.response.json().map(e => e.id);",
+                  "    pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"eventoFavoritoId\")));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/mis-eventos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos",
+                "mis-eventos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Organizador: reporte del evento de \"Los Nuevos\"",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "const r = pm.response.json();",
+                  "const campo = r.sectores.find(s => s.sector === \"Campo\");",
+                  "pm.test(\"Campo: 1 vendida, 1 utilizada, $20.000 recaudados\", function () {",
+                  "    pm.expect(campo.vendidas).to.eql(1);",
+                  "    pm.expect(campo.utilizadas).to.eql(1);",
+                  "    pm.expect(campo.recaudacion).to.eql(20000);",
+                  "    pm.expect(campo.ocupacionPorcentaje).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/{{eventoFavoritoId}}/reporte",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos",
+                "{{eventoFavoritoId}}",
+                "reporte"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Organizador: reporte del evento 1 (cancelado: devueltas y a reintegrar)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "const r = pm.response.json();",
+                  "pm.test(\"Muestra devoluciones y reintegros\", function () {",
+                  "    pm.expect(r.estado).to.eql(\"CANCELADO\");",
+                  "    pm.expect(r.devueltas + r.aReintegrar).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/{{eventoId}}/reporte",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos",
+                "{{eventoId}}",
+                "reporte"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Un cliente no puede ver reportes -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/{{eventoFavoritoId}}/reporte",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos",
+                "{{eventoFavoritoId}}",
+                "reporte"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Administrador: reporte de cualquier evento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAdmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/{{eventoFavoritoId}}/reporte",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos",
+                "{{eventoFavoritoId}}",
+                "reporte"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Organizador crea un evento de alta demanda (con fila virtual)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set(\"eventoFilaId\", pm.response.json().id);",
+                  "pm.test(\"Usa fila virtual\", function () { pm.expect(pm.response.json().filaVirtual).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/eventos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Gira Masiva 2027\",\n  \"descripcion\": \"Apertura de venta con fila virtual\",\n  \"tipo\": \"RECITAL\",\n  \"organizador\": \"Productora Sur\",\n  \"participantes\": [\n    \"Banda Masiva\"\n  ],\n  \"fechaHora\": \"2027-08-20T21:00:00\",\n  \"lugarId\": 1,\n  \"filaVirtual\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Definir precios (evento con fila)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/{{eventoFilaId}}/precios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos",
+                "{{eventoFilaId}}",
+                "precios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precios\": [\n    {\n      \"sectorId\": \"{{sectorCampo}}\",\n      \"precio\": 25000\n    },\n    {\n      \"sectorId\": \"{{sectorPlatea}}\",\n      \"precio\": 50000\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Publicar (evento con fila)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos/{{eventoFilaId}}/publicacion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos",
+                "{{eventoFilaId}}",
+                "publicacion"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reservar sin pasar por la fila -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Pide hacer la fila\", function () { pm.expect(pm.response.json().mensaje).to.include(\"fila virtual\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoFilaId}}\",\n  \"sectorId\": \"{{sectorCampo}}\",\n  \"cantidad\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Entrar a la fila",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"En la fila o ya habilitado\", function () { pm.expect([\"ESPERANDO\", \"HABILITADO\"]).to.include(pm.response.json().estado); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/filas/{{eventoFilaId}}/ingreso",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "filas",
+                "{{eventoFilaId}}",
+                "ingreso"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Consultar mi turno (después de la tanda)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Las tandas salen cada 5 segundos: se espera a la siguiente",
+                  "setTimeout(function () {}, 6000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "const r = pm.response.json();",
+                  "pm.test(\"Habilitado con turno\", function () { pm.expect(r.estado).to.eql(\"HABILITADO\"); pm.expect(r.turno).to.be.a(\"string\"); });",
+                  "pm.collectionVariables.set(\"turnoFila\", r.turno);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/filas/{{eventoFilaId}}/turno",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "filas",
+                "{{eventoFilaId}}",
+                "turno"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Otro cliente usa ese turno -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente2}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Turno-Fila",
+                "value": "{{turnoFila}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoFilaId}}\",\n  \"sectorId\": \"{{sectorCampo}}\",\n  \"cantidad\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Reservar con el turno (header X-Turno-Fila)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set(\"reservaFilaId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Turno-Fila",
+                "value": "{{turnoFila}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoFilaId}}\",\n  \"sectorId\": \"{{sectorCampo}}\",\n  \"cantidad\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Organizador: estado de la fila",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Se habilitó al menos un cliente\", function () { pm.expect(pm.response.json().habilitadosEnTotal).to.be.at.least(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOrganizador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/filas/{{eventoFilaId}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "filas",
+                "{{eventoFilaId}}",
+                "estado"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancelar la reserva (limpieza)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reservas/{{reservaFilaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservas",
+                "{{reservaFilaId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Un evento sin fila no tiene fila -> 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 409\", function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/filas/{{eventoFavoritoId}}/ingreso",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "filas",
+                "{{eventoFavoritoId}}",
+                "ingreso"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Rutas internas (comprobación)",
       "item": [
         {
           "name": "Ruta interna por el gateway -> 404 (no se publica)",
@@ -2975,6 +4074,34 @@
     },
     {
       "key": "eventoFavoritoId",
+      "value": ""
+    },
+    {
+      "key": "reservaQrId",
+      "value": ""
+    },
+    {
+      "key": "codigoQr",
+      "value": ""
+    },
+    {
+      "key": "entradaQrId",
+      "value": ""
+    },
+    {
+      "key": "claveQr",
+      "value": ""
+    },
+    {
+      "key": "eventoFilaId",
+      "value": ""
+    },
+    {
+      "key": "turnoFila",
+      "value": ""
+    },
+    {
+      "key": "reservaFilaId",
       "value": ""
     }
   ]

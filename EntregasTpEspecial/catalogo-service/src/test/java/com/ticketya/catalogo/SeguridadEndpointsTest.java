@@ -42,6 +42,10 @@ class SeguridadEndpointsTest {
             "PUT,  /eventos/1/suspension,    ORGANIZADOR",
             "PUT,  /eventos/1/cancelacion,   CLIENTE",
             "PUT,  /eventos/1/cancelacion,   ORGANIZADOR",
+            "GET,  /eventos/1/reporte,       CLIENTE",
+            "GET,  /eventos/1/reporte,       SIN_ROL",
+            "GET,  /eventos/mis-eventos,     CLIENTE",
+            "GET,  /eventos/mis-eventos,     ACCESO",
     })
     void rolesNoPermitidosReciben403(String metodo, String ruta, String rol) throws Exception {
         MockHttpServletRequestBuilder pedido = request(HttpMethod.valueOf(metodo), ruta)

@@ -7,6 +7,7 @@
 | **api-gateway** | 8080 | Punto de entrada único. Valida el JWT y los roles (entrega 2), enruta a los servicios, asigna un `X-Correlation-Id` a cada pedido y registra método, ruta, usuario, código de respuesta y tiempo. No publica las rutas `/interno/**`. | - |
 | **auth-service** | 8083 | Usuarios y roles: registro de clientes, alta de usuarios con rol (admin) y login, que emite el JWT. *(entrega 2)* | `auth` |
 | **preferencias-service** | 8084 | Preferencias de cada cliente (ciudad, tipos y artistas favoritos), historial de compras y recomendaciones de eventos. *(entrega 2)* | MongoDB `preferencias` |
+| **fila-service** | 8086 | Fila virtual para eventos de alta demanda: posición por orden de llegada, habilitación por tandas y turno firmado para reservar. *(entrega 2)* | Redis |
 | **notificaciones-service** | 8085 | Avisos a los clientes (email simulado): compra confirmada, evento cancelado y artista favorito en su ciudad. Se activa por mensajes de RabbitMQ. *(entrega 2)* | MongoDB `notificaciones` |
 | **catalogo-service** | 8081 | Lugares, sectores y eventos: alta, precios por sector, publicación, suspensión, cancelación y búsqueda por múltiples criterios. Es el dueño de la verdad sobre qué se vende y a qué precio. | `catalogo` |
 | **ventas-service** | 8082 | Reserva temporal de lugares, compra y pago (pasarela simulada), entradas con QR, devoluciones y cancelación de entradas. Garantiza que una entrada no se venda dos veces. | `ventas` |
@@ -54,6 +55,11 @@ flowchart LR
         NS --> MAIL["EmailSimulado"]
     end
 
+    subgraph FIL["fila-service :8086"]
+        FC["Controller"] --> FS["FilaService + Planificador de tandas"]
+    end
+    RD[("Redis")]
+
     MQ{{"RabbitMQ<br/>exchange ticketya.eventos"}}
     MGP[("MongoDB preferencias")]
     MGN[("MongoDB notificaciones")]
@@ -76,6 +82,9 @@ flowchart LR
     CS -->|"POST /interno/eventos/{e}/cancelacion"| VC
     GW -->|"/preferencias, /recomendaciones"| PC
     GW -->|"/notificaciones"| NC
+    GW -->|"/filas"| FC
+    FS --> RD
+    FS -->|"GET /eventos/{e}"| CC
     PR --> MGP
     NR --> MGN
     VS -.->|"compra.confirmada, evento.cancelado"| MQ
@@ -90,10 +99,11 @@ flowchart LR
 | Servicio | Endpoints |
 |---|---|
 | auth | `POST /auth/registro`, `POST /auth/login`, `POST/GET /auth/usuarios` |
-| catalogo | `POST/GET /lugares`, `GET /lugares/{id}`, `POST/GET /eventos`, `GET /eventos/{id}`, `PUT /eventos/{id}/precios`, `POST /eventos/{id}/publicacion`, `PUT /eventos/{id}/suspension`, `PUT /eventos/{id}/cancelacion` |
+| catalogo | `POST/GET /lugares`, `GET /lugares/{id}`, `POST/GET /eventos`, `GET /eventos/{id}`, `PUT /eventos/{id}/precios`, `POST /eventos/{id}/publicacion`, `PUT /eventos/{id}/suspension`, `PUT /eventos/{id}/cancelacion`, `GET /eventos/mis-eventos`, `GET /eventos/{id}/reporte` |
 | preferencias | `GET/PUT /preferencias`, `GET /recomendaciones` |
 | notificaciones | `GET /notificaciones` |
-| ventas | `POST /reservas`, `GET/DELETE /reservas/{id}`, `POST /reservas/{id}/pago`, `GET /entradas`, `GET /entradas/{id}`, `POST/GET /devoluciones`, `PUT /devoluciones/{id}/aprobacion`, `PUT /devoluciones/{id}/rechazo`, `GET /disponibilidad/eventos/{e}/sectores/{s}` |
+| fila | `POST/DELETE /filas/{e}/ingreso`, `GET /filas/{e}/turno`, `GET /filas/{e}/estado` |
+| ventas | `POST /reservas`, `GET/DELETE /reservas/{id}`, `POST /reservas/{id}/pago`, `GET /entradas`, `GET /entradas/{id}`, `POST/GET /devoluciones`, `PUT /devoluciones/{id}/aprobacion`, `PUT /devoluciones/{id}/rechazo`, `GET /disponibilidad/eventos/{e}/sectores/{s}`, `POST /accesos` |
 
 Detalle con ejemplos en [05-api-endpoints.md](05-api-endpoints.md) y en los OpenAPI de cada servicio.
 
@@ -104,7 +114,8 @@ Detalle con ejemplos en [05-api-endpoints.md](05-api-endpoints.md) y en los Open
 | ventas -> catalogo | `GET /interno/eventos/{eventoId}/sectores/{sectorId}` | Obtener estado del evento, fecha, capacidad y precio del sector. |
 | catalogo -> ventas | `POST /interno/eventos/{eventoId}/cancelacion` | Avisar la cancelación para pasar las entradas a reintegro. |
 | notificaciones -> preferencias | `GET /interno/interesados?ciudad=&artistas=` | Clientes de esa ciudad con alguno de esos artistas como favorito. |
-| preferencias, notificaciones -> catalogo | `GET /eventos`, `GET /eventos/{id}` (públicos) | Eventos a la venta (candidatos a recomendar) y nombre/tipo/ciudad de un evento. |
+| preferencias, notificaciones, fila -> catalogo | `GET /eventos`, `GET /eventos/{id}` (públicos) | Eventos a la venta (candidatos a recomendar), nombre/tipo/ciudad de un evento y si usa fila virtual. |
+| catalogo -> ventas | `GET /interno/eventos/{eventoId}/estadisticas` | Ventas por sector para el reporte del organizador. |
 
 ## 4. Cómo se garantiza que una entrada no se venda dos veces
 
@@ -217,12 +228,12 @@ sequenceDiagram
 La tabla completa de permisos por endpoint está en el README y se verifica en `ReglasDeAccesoTest` (gateway) y
 `SeguridadEndpointsTest` (catálogo y ventas).
 
-**Limitación conocida:** todavía no se controla que un organizador solo modifique *sus* eventos (el organizador del evento
-es un texto). Se puede resolver guardando el id del organizador al crear el evento.
+**Dueño del evento:** al crear un evento se guarda el id del organizador (`organizadorId`, tomado del JWT). Solo ese
+organizador (o un administrador) puede configurar precios, publicarlo y ver sus reportes; otro organizador recibe 403.
 
 ## 10. Despliegue con Docker (entrega 2)
 
-`docker compose up --build` levanta 11 contenedores en una red interna:
+`docker compose up --build` levanta 13 contenedores en una red interna:
 
 | Contenedor | Imagen | Puerto publicado |
 |---|---|---|
@@ -232,6 +243,8 @@ es un texto). Se puede resolver guardando el id del organizador al crear el even
 | `preferencias-service`, `notificaciones-service` | build de su `Dockerfile` | ninguno |
 | `mongo` | `mongo:7.0.11` con `--auth` (configuración de la cátedra) | `127.0.0.1:27017` (solo local, para Compass) |
 | `rabbitmq` | `rabbitmq:3.13-management` | `127.0.0.1:5672` y consola web `127.0.0.1:15672` (solo local) |
+| `fila-service` | build de su `Dockerfile` | ninguno |
+| `redis` | `redis:7-alpine` | `127.0.0.1:6379` (solo local) |
 
 - Cada `Dockerfile` compila con Maven en una primera etapa y copia solo el jar a una imagen con el JRE (más liviana).
 - Los servicios se comunican por el nombre del contenedor (`http://catalogo-service:8081`), configurado con variables
@@ -296,3 +309,83 @@ del cliente (arranque en frío) se sugieren los próximos eventos a la venta.
 **Simplificaciones justificadas:** la co-compra se calcula en el momento consultando MongoDB (índice en
 `compras.eventoId`), lo que alcanza para el volumen del TP. A gran escala se precalcularía periódicamente una matriz de
 similitud entre eventos, o se usaría un motor de recomendación dedicado.
+
+## 13. Control de acceso con QR (entrega 2)
+
+El personal de acceso (rol `ACCESO`) escanea el QR con `POST /accesos {eventoId, codigoQr}`. Todo se resuelve en
+**una sola sentencia atómica**:
+
+```sql
+UPDATE entrada SET estado = 'USADA', fecha_uso = now()
+ WHERE codigo_qr = ? AND evento_id = ? AND estado = 'VENDIDA'
+```
+
+Si actualizó 1 fila, el ingreso está permitido. Si actualizó 0, se busca el motivo para informarlo: no existe (404),
+es de otro evento, ya fue utilizada (con la hora del primer ingreso) o no está vigente porque fue devuelta o el evento se
+canceló (409). **Si dos puertas escanean el mismo QR al mismo tiempo**, la base deja actualizar a una sola: la otra
+encuentra la fila ya en `USADA` y es rechazada. Esto vale también con varias instancias de ventas, porque la decisión
+la toma la base. Se verifica en `AccesoTest` con 8 escaneos simultáneos.
+
+Cada escaneo, permitido o rechazado, queda en la tabla `REGISTRO_ACCESO` (bitácora: qué QR, en qué puerta, quién y
+cuándo). Una entrada ya utilizada no se puede devolver.
+
+## 14. Reportes para organizadores (entrega 2)
+
+`GET /eventos/{id}/reporte` (organizador dueño del evento o administrador) se arma por **composición de APIs** en catálogo:
+
+```mermaid
+sequenceDiagram
+    actor O as Organizador
+    participant GW as api-gateway
+    participant C as catalogo-service
+    participant V as ventas-service
+    O->>GW: GET /eventos/5/reporte (JWT ORGANIZADOR)
+    GW->>C: + X-Usuario-Id, X-Rol
+    C->>C: ¿es el dueño del evento? (si no, 403)
+    C->>C: sectores, capacidades y precios (sus datos)
+    C->>V: GET /interno/eventos/5/estadisticas
+    V->>V: SELECT sector, estado, COUNT, SUM(precio) GROUP BY sector, estado
+    V-->>C: vendidas, utilizadas, devueltas, a reintegrar y montos por sector
+    C-->>O: por sector y total: vendidas, disponibles, % de ocupación, devueltas, recaudación
+```
+
+Cada servicio aporta lo que es suyo: catálogo la capacidad y los precios, ventas las cantidades y montos. No se copian
+datos de ventas en catálogo, así que el reporte siempre está al día. Si ventas no responde, el reporte devuelve 503 en
+lugar de mostrar ceros falsos. `GET /eventos/mis-eventos` lista los eventos del organizador en cualquier estado.
+
+## 15. Fila virtual con Redis (entrega 2, versión simplificada)
+
+Un evento creado con `filaVirtual: true` exige un **turno** para reservar.
+
+```mermaid
+sequenceDiagram
+    actor C as Cliente
+    participant F as fila-service
+    participant R as Redis
+    participant V as ventas-service
+    C->>F: POST /filas/7/ingreso
+    F->>R: INCR contador · ZADD NX espera (usuario, número de llegada)
+    F-->>C: ESPERANDO, posición 1.234, ~2 min
+    loop cada 5 segundos (planificador)
+        F->>R: SET NX lock-tanda (una tanda por intervalo)
+        F->>R: ZPOPMIN espera 50 (los primeros 50)
+        F->>R: SET turno:{u} = token firmado, TTL 10 min
+    end
+    C->>F: GET /filas/7/turno
+    F-->>C: HABILITADO + turno
+    C->>V: POST /reservas + header X-Turno-Fila
+    V->>V: verifica firma, usuario, evento y vencimiento (sin llamar a fila)
+    V-->>C: 201 reserva creada
+```
+
+| Decisión | Por qué |
+|---|---|
+| **Redis** (sorted set + claves con TTL) | Miles de ingresos por segundo, operaciones atómicas en memoria, posición en O(log n) y turnos que vencen solos. |
+| **Orden por número de llegada** (`INCR`), no por hora | Justo con quien llegó primero, e igual en todas las instancias (no depende del reloj de cada máquina). |
+| **Tandas por intervalo** con candado `SET NX` | Regula cuántos clientes compran a la vez (protege ventas y la base). Con varias instancias del servicio sale una sola tanda por intervalo, y `ZPOPMIN` garantiza que nadie se habilite dos veces. |
+| **Turno = token firmado** (HS256, secreto compartido con ventas) | Ventas lo verifica localmente: la fila no queda en el camino de cada reserva ni es un punto único de falla para comprar. El token lleva usuario y evento, así que no sirve para otra persona ni para otro evento, y vence a los 10 minutos. |
+| **La fila es efímera** | Si Redis se reinicia, la fila se pierde y los clientes vuelven a entrar; las compras siguen en ventas (fuente de verdad). Se acepta como simplificación. |
+
+**Simplificaciones justificadas:** tamaño de tanda e intervalo fijos (configurables por variable de entorno, no por
+evento); el cliente consulta su turno (*polling*) en lugar de recibir un aviso *push*; un turno no se "consume" al
+reservar (vale 10 minutos, y el límite de 4 entradas por cliente y evento sigue aplicando).

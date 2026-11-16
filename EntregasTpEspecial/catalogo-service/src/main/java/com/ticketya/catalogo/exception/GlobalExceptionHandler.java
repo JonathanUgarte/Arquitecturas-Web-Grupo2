@@ -48,6 +48,11 @@ public class GlobalExceptionHandler {
         return respuesta(HttpStatus.BAD_REQUEST, "Parametro o cuerpo con formato invalido");
     }
 
+    @ExceptionHandler(ServicioNoDisponibleException.class)
+    public ResponseEntity<ErrorDTO> noDisponible(ServicioNoDisponibleException ex) {
+        return respuesta(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
     private ResponseEntity<ErrorDTO> respuesta(HttpStatus status, String mensaje) {
         ErrorDTO body = new ErrorDTO(LocalDateTime.now(), status.value(), status.getReasonPhrase(), mensaje);
         return ResponseEntity.status(status).body(body);

@@ -19,6 +19,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DatosDePrueba implements CommandLineRunner {
 
+    // Id del usuario organizador@ticketya.com que crea auth-service (es el dueno de los eventos de prueba)
+    private static final Long ORGANIZADOR_ID = 3L;
+
+
     private final LugarRepository lugarRepo;
     private final LugarService lugarService;
     private final EventoService eventoService;
@@ -40,7 +44,8 @@ public class DatosDePrueba implements CommandLineRunner {
         // Evento 1: publicado, listo para vender
         EventoDTO recital = eventoService.crear(new EventoRequest(
                 "Recital de Prueba", "Show de rock en el estadio", TipoEvento.RECITAL, "Productora Sur",
-                List.of("Banda Uno", "Banda Dos"), LocalDateTime.now().plusDays(30), lugar.id()));
+                List.of("Banda Uno", "Banda Dos"), LocalDateTime.now().plusDays(30), lugar.id(), false),
+                ORGANIZADOR_ID);
         eventoService.configurarPrecios(recital.id(), new PreciosRequest(List.of(
                 new PrecioRequest(campo, new BigDecimal("15000")),
                 new PrecioRequest(platea, new BigDecimal("30000")))));
@@ -49,6 +54,7 @@ public class DatosDePrueba implements CommandLineRunner {
         // Evento 2: en borrador (para probar precios y publicacion)
         eventoService.crear(new EventoRequest(
                 "Obra de Teatro de Prueba", "Comedia en el teatro", TipoEvento.TEATRO, "Compania Central",
-                List.of("Elenco Estable"), LocalDateTime.now().plusDays(45), lugar.id()));
+                List.of("Elenco Estable"), LocalDateTime.now().plusDays(45), lugar.id(), false),
+                ORGANIZADOR_ID);
     }
 }

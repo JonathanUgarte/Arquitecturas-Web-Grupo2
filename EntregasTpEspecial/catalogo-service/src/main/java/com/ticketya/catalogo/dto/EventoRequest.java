@@ -17,6 +17,8 @@ public record EventoRequest(
         @Schema(description = "Artistas, equipos o disertantes", example = "[\"Banda Uno\", \"Banda Dos\"]")
         List<String> participantes,
         @Schema(example = "2027-01-15T21:00:00") @NotNull @Future LocalDateTime fechaHora,
-        @Schema(description = "Id del lugar donde se realiza", example = "1") @NotNull Long lugarId
+        @Schema(description = "Id del lugar donde se realiza", example = "1") @NotNull Long lugarId,
+        @Schema(description = "Evento de alta demanda: para comprar hay que pasar por la fila virtual (opcional, por defecto false)",
+                example = "false") Boolean filaVirtual
 ) {
 }

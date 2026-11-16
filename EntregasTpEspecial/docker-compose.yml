@@ -4,9 +4,10 @@
 #  - PostgreSQL (una base por servicio) para auth, catalogo y ventas, que necesitan transacciones.
 #  - MongoDB (configuracion de la catedra) para preferencias y notificaciones, cada uno con su propia base.
 #  - RabbitMQ para la comunicacion asincronica (eventos de compras, cancelaciones y publicaciones).
+#  - Redis para la fila virtual (fila-service): orden de llegada y turnos con vencimiento.
 # Solo el gateway publica un puerto hacia afuera (8080): los servicios quedan en la red interna de Docker,
 # asi nadie puede saltearse la validacion del JWT llamando directo a un servicio.
-# MongoDB y RabbitMQ se publican solo en 127.0.0.1 (no en la red) para usar herramientas de desarrollo
+# MongoDB, RabbitMQ y Redis se publican solo en 127.0.0.1 (no en la red) para usar herramientas de desarrollo
 # (MongoDB Compass, la consola web de RabbitMQ) y para correr los servicios desde IntelliJ.
 
 x-postgres-healthcheck: &pg-healthcheck
@@ -83,6 +84,17 @@ services:
       timeout: 5s
       retries: 20
 
+  # Fila virtual: estructura en memoria (sorted set + claves con TTL); no necesita persistencia
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   # ------------------------------------------------------------------ microservicios
   auth-service:
     build: ./auth-service
@@ -121,6 +133,7 @@ services:
       # ventas.catalogo-url (Spring: puntos -> "_", sin guiones, en mayusculas)
       VENTAS_CATALOGOURL: http://catalogo-service:8081
       SPRING_RABBITMQ_HOST: rabbitmq
+      TURNO_SECRET: ${TURNO_SECRET:-ticketya-secreto-de-turnos-fila-virtual-desarrollo-2026}
     depends_on:
       ventas-db:
         condition: service_healthy
@@ -137,6 +150,16 @@ services:
       mongo:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+
+  fila-service:
+    build: ./fila-service
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+      FILA_CATALOGOURL: http://catalogo-service:8081
+      TURNO_SECRET: ${TURNO_SECRET:-ticketya-secreto-de-turnos-fila-virtual-desarrollo-2026}
+    depends_on:
+      redis:
         condition: service_healthy
 
   notificaciones-service:
@@ -163,6 +186,7 @@ services:
       VENTAS_URL: http://ventas-service:8082
       PREFERENCIAS_URL: http://preferencias-service:8084
       NOTIFICACIONES_URL: http://notificaciones-service:8085
+      FILA_URL: http://fila-service:8086
       JWT_SECRET: ${JWT_SECRET:-ticketya-secreto-de-desarrollo-cambiar-en-produccion-2026}
     depends_on:
       - auth-service
@@ -170,6 +194,7 @@ services:
       - ventas-service
       - preferencias-service
       - notificaciones-service
+      - fila-service
 
 volumes:
   auth-data:

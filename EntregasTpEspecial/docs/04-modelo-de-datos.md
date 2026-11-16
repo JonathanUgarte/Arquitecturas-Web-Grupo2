@@ -40,6 +40,8 @@ erDiagram
         LocalDateTime fechaHora
         String estado "BORRADOR PUBLICADO AGOTADO SUSPENDIDO CANCELADO FINALIZADO"
         String motivoCancelacion
+        Long organizadorId "id de auth: dueño del evento (entrega 2)"
+        Boolean filaVirtual "alta demanda: exige turno (entrega 2)"
     }
     PRECIO_SECTOR {
         Long id PK
@@ -116,6 +118,16 @@ erDiagram
         String estado "VENDIDA DEVUELTA A_REINTEGRAR USADA"
         LocalDateTime fechaEvento "copia"
         LocalDateTime fechaCompra
+        LocalDateTime fechaUso "escaneo en el ingreso (entrega 2)"
+    }
+    REGISTRO_ACCESO {
+        Long id PK
+        String codigoQr "lo escaneado"
+        Long eventoId "puerta: id de catalogo"
+        Long entradaId "null si el QR no existe"
+        String resultado "PERMITIDO NO_EXISTE OTRO_EVENTO YA_UTILIZADA NO_VIGENTE"
+        Long usuarioAccesoId "personal que escaneo"
+        LocalDateTime fecha
     }
     DEVOLUCION {
         Long id PK
@@ -216,6 +228,25 @@ Un documento por aviso enviado, en la colección `notificaciones`:
 Se usa **una sola instancia de MongoDB** (la configuración provista por la cátedra) con **una base por servicio**
 (`preferencias` y `notificaciones`): misma tecnología, esquemas separados, y ningún servicio lee la base del otro.
 
+## fila-service (entrega 2) · Redis
+
+No hay tablas: la fila es una estructura **en memoria** en Redis, con estas claves por evento `{e}`:
+
+| Clave | Tipo | Contenido |
+|---|---|---|
+| `fila:{e}:espera` | Sorted set | usuario → número de llegada. La posición es `ZRANK + 1`; la tanda sale con `ZPOPMIN` (los primeros en llegar). |
+| `fila:{e}:contador` | String (contador) | Número de llegada, con `INCR` atómico: el orden es el mismo aunque haya varias instancias. |
+| `fila:{e}:turno:{u}` | String con TTL | El turno del usuario (token firmado). Vence solo a los 10 minutos. |
+| `fila:{e}:habilitados` | String (contador) | Cuántos clientes se habilitaron en total. |
+| `fila:{e}:lock-tanda` | String con TTL (`SET NX`) | Candado: una sola tanda por intervalo aunque haya varias instancias. |
+| `fila:{e}:con-fila` | String con TTL 30 s | Cache de "el evento usa fila y está a la venta" (evita consultar a catálogo en cada ingreso). |
+| `filas:activas` | Set | Eventos con gente esperando (los recorre el planificador de tandas). |
+
+**¿Por qué Redis y no una base relacional o MongoDB?** En la apertura de una venta masiva entran miles de clientes por
+segundo: Redis resuelve cada operación en memoria y en forma atómica, el sorted set da la posición en O(log n) y los
+turnos vencen solos con el TTL. La fila es un dato efímero: si se pierde (reinicio), los clientes vuelven a entrar; las
+compras ya hechas están en ventas, que es la fuente de verdad.
+
 ## Relaciones entre servicios y entidades solapadas
 
 | Dato en ventas | Referencia a catalogo | Cómo se resuelve |
@@ -223,6 +254,8 @@ Se usa **una sola instancia de MongoDB** (la configuración provista por la cát
 | `evento_id`, `sector_id` (en reserva, asiento, stock y entrada) | `EVENTO.id`, `SECTOR.id` | Solo el id, sin clave foránea. Los datos del evento y del sector se piden por HTTP al reservar. |
 | `usuario_id` (ventas), `_id` del perfil (preferencias), `usuarioId` (notificaciones) | `USUARIO.id` (auth) | Solo el id: viaja en el JWT. |
 | `compras.eventoId` (preferencias), `referencia` (notificaciones) | `EVENTO.id` (catálogo) | Solo el id; los datos se piden a catálogo al consumir el mensaje. |
+| `EVENTO.organizadorId` (catálogo) | `USUARIO.id` (auth) | Solo el id, tomado del JWT de quien crea el evento. |
+| Claves `fila:{e}:...` (fila) | `EVENTO.id` (catálogo), `USUARIO.id` (auth) | Solo ids; el turno firmado lleva usuario y evento. |
 
 **Entidades solapadas entre bases:** ninguna entidad está duplicada. `Evento`, `Lugar` y `Sector` existen **únicamente**
 en catálogo. Ventas guarda además **copias de valores puntuales** que necesita después, para no depender de catálogo:

@@ -31,7 +31,7 @@ public class ReservaController {
                     + "La reserva vence a los 10 minutos si no se paga. Maximo 4 entradas por cliente y evento. "
                     + "La base impide que dos clientes tomen el mismo asiento.")
     @ApiResponse(responseCode = "201", description = "Reserva creada (estado PENDIENTE)")
-    @ApiResponse(responseCode = "403", description = "No es cliente")
+    @ApiResponse(responseCode = "403", description = "No es cliente, o el evento usa fila virtual y falta el turno (o es invalido, vencido o de otro usuario)")
     @ApiResponse(responseCode = "400", description = "Faltan datos o el asiento no existe en el sector")
     @ApiResponse(responseCode = "404", description = "No existe el evento o el sector")
     @ApiResponse(responseCode = "409", description = "Asiento ya tomado, sin cupo, evento no a la venta o limite por cliente superado")
@@ -42,9 +42,11 @@ public class ReservaController {
             @RequestHeader("X-Usuario-Id") Long usuarioId,
             @Parameter(description = "Rol del usuario (lo completa el gateway a partir del JWT)", example = "CLIENTE")
             @RequestHeader(value = "X-Rol", required = false) String rol,
+            @Parameter(description = "Turno de la fila virtual (solo en eventos de alta demanda; se obtiene en GET /filas/{eventoId}/turno)")
+            @RequestHeader(value = "X-Turno-Fila", required = false) String turnoFila,
             @Valid @RequestBody ReservaRequest req) {
         Seguridad.exigirRol(rol, Seguridad.CLIENTE);
-        return ResponseEntity.status(HttpStatus.CREATED).body(reservaService.reservar(usuarioId, req));
+        return ResponseEntity.status(HttpStatus.CREATED).body(reservaService.reservar(usuarioId, req, turnoFila));
     }
 
     @Operation(summary = "Consultar una reserva propia")

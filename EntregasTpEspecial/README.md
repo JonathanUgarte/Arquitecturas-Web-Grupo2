@@ -3,7 +3,8 @@
 Plataforma de venta de entradas (ticketera virtual) basada en **microservicios con Spring Boot**.
 Trabajo práctico de Arquitectura Web (TUDAI). **Entrega 1** (núcleo: publicación, búsqueda y compra sin doble venta) completa;
 **Entrega 2** (sistema completo) en curso: ya incluye seguridad con JWT y roles, despliegue con Docker, MongoDB,
-preferencias y recomendaciones, y notificaciones asincrónicas con RabbitMQ.
+preferencias y recomendaciones, notificaciones asincrónicas con RabbitMQ, control de acceso con QR, reportes para
+organizadores y fila virtual con Redis.
 
 > Integrantes: Agustin pagola, Agustin Rebord, Jonatan Ugarte
 
@@ -29,6 +30,12 @@ preferencias y recomendaciones, y notificaciones asincrónicas con RabbitMQ.
   favoritos, historial de compras y sugerencias del tipo "quienes compraron este evento también compraron...".
 - **Notificaciones (11)** en un nuevo `notificaciones-service`: avisos al confirmar una compra, al cancelarse un evento y
   cuando un artista favorito publica un evento en la ciudad del cliente.
+- **Control de acceso con QR (8)**: el personal de acceso escanea la entrada; un QR no puede ingresar dos veces, ni
+  siquiera si se escanea en dos puertas al mismo tiempo. Cada escaneo queda en una bitácora.
+- **Reportes para organizadores (12)**: vendidas, devueltas y a reintegrar por sector, ocupación y recaudación. Cada
+  organizador solo ve y modifica *sus* eventos.
+- **Fila virtual (6)** en un nuevo `fila-service` con **Redis**: en eventos de alta demanda, los clientes hacen la fila,
+  ven su posición y se los habilita por tandas, en orden de llegada, con un turno para comprar.
 - **Comunicación asincrónica con RabbitMQ**: ventas y catálogo publican eventos (`compra.confirmada`, `evento.cancelado`,
   `evento.publicado`) que consumen preferencias y notificaciones, con reintentos y cola de mensajes fallidos.
 
@@ -40,6 +47,7 @@ api-gateway/          Punto de entrada único (puerto 8080): valida el JWT y los
 auth-service/         Usuarios, roles, registro y login con JWT (puerto 8083)
 preferencias-service/ Preferencias, historial y recomendaciones, con MongoDB (puerto 8084)
 notificaciones-service/ Avisos a los clientes a partir de mensajes de RabbitMQ, con MongoDB (puerto 8085)
+fila-service/         Fila virtual por tandas para eventos de alta demanda, con Redis (puerto 8086)
 catalogo-service/     Lugares, eventos, precios, publicación y búsqueda (puerto 8081)
 ventas-service/       Reservas, pagos, entradas, devoluciones y disponibilidad (puerto 8082)
 docs/                 Diseño: user stories, arquitectura, diagramas, modelo de datos, endpoints y OpenAPI
@@ -56,14 +64,15 @@ Requisito: Docker Desktop (o Docker Engine con el plugin compose). Desde esta ca
 docker compose up --build
 ```
 
-La primera vez tarda unos minutos (descarga imágenes y dependencias de Maven). Levanta 11 contenedores:
+La primera vez tarda unos minutos (descarga imágenes y dependencias de Maven). Levanta 13 contenedores:
 
 | Tipo | Contenedores |
 |---|---|
 | Bases relacionales | `auth-db`, `catalogo-db`, `ventas-db` (PostgreSQL 16) |
 | Base NoSQL | `mongo` (MongoDB 7, configuración provista por la cátedra), con las bases `preferencias` y `notificaciones` |
 | Mensajería | `rabbitmq` (RabbitMQ 3.13 con consola web) |
-| Microservicios | `auth-service`, `catalogo-service`, `ventas-service`, `preferencias-service`, `notificaciones-service` |
+| Fila virtual | `redis` (Redis 7) |
+| Microservicios | `auth-service`, `catalogo-service`, `ventas-service`, `preferencias-service`, `notificaciones-service`, `fila-service` |
 | Punto de entrada | `api-gateway` |
 
 **Solo el gateway publica un puerto: `http://localhost:8080`.** Los servicios y las bases quedan en la red interna de
@@ -72,7 +81,7 @@ Docker, así nadie puede saltearse la validación del JWT llamando directo a un 
 - Detener: `docker compose down` · Detener y borrar los datos: `docker compose down -v`
 - **Consola de RabbitMQ:** http://localhost:15672 (usuario `ticketya`, clave `ticketya`): colas, mensajes y la cola de fallidos.
 - **MongoDB** (por ejemplo con MongoDB Compass): `mongodb://root:password@localhost:27017/?authSource=admin`.
-- MongoDB y RabbitMQ se publican solo en `127.0.0.1` (no quedan expuestos a la red), para estas herramientas y para
+- MongoDB, RabbitMQ y Redis se publican solo en `127.0.0.1` (no quedan expuestos a la red), para estas herramientas y para
   correr servicios desde IntelliJ.
 - El secreto del JWT se puede cambiar con la variable `JWT_SECRET` (por ejemplo en un archivo `.env` junto al compose).
 
@@ -87,18 +96,18 @@ Docker, así nadie puede saltearse la validación del JWT llamando directo a un 
 
 ### Ejecución
 
-`preferencias-service` y `notificaciones-service` necesitan MongoDB y RabbitMQ, y catálogo y ventas los usan para publicar
-eventos. Sin Docker para los servicios, se pueden levantar solo esos dos contenedores:
+`preferencias-service` y `notificaciones-service` necesitan MongoDB y RabbitMQ, `fila-service` necesita Redis, y catálogo y
+ventas usan RabbitMQ para publicar eventos. Sin Docker para los servicios, se pueden levantar solo esos dos contenedores:
 
 ```bash
-docker compose up -d mongo rabbitmq
+docker compose up -d mongo rabbitmq redis
 ```
 
 (Si RabbitMQ no está levantado, catálogo y ventas funcionan igual: solo no se envían los avisos.)
 
 Con IntelliJ: abrir el repositorio, agregar cada `pom.xml` como proyecto Maven y ejecutar las clases `main`
 **en este orden**: `AuthServiceApplication`, `CatalogoServiceApplication`, `VentasServiceApplication`,
-`PreferenciasServiceApplication`, `NotificacionesServiceApplication` y `ApiGatewayApplication`.
+`PreferenciasServiceApplication`, `NotificacionesServiceApplication`, `FilaServiceApplication` y `ApiGatewayApplication`.
 
 Con la línea de comandos (una terminal por servicio):
 
@@ -108,6 +117,7 @@ cd catalogo-service && mvn spring-boot:run
 cd ventas-service   && mvn spring-boot:run
 cd preferencias-service   && mvn spring-boot:run
 cd notificaciones-service && mvn spring-boot:run
+cd fila-service           && mvn spring-boot:run
 cd api-gateway      && mvn spring-boot:run
 ```
 
@@ -119,6 +129,7 @@ cd api-gateway      && mvn spring-boot:run
 | auth-service | 8083 | http://localhost:8083/swagger-ui.html | http://localhost:8083/h2-console |
 | preferencias-service | 8084 | http://localhost:8084/swagger-ui.html | MongoDB (`preferencias`) |
 | notificaciones-service | 8085 | http://localhost:8085/swagger-ui.html | MongoDB (`notificaciones`) |
+| fila-service | 8086 | http://localhost:8086/swagger-ui.html | Redis |
 
 Datos de la consola H2: JDBC URL `jdbc:h2:file:./data/catalogo` (o `./data/ventas`, `./data/auth`), usuario `sa`, sin contraseña.
 
@@ -159,6 +170,9 @@ Para empezar de cero: sin Docker, detener los servicios y borrar la carpeta `dat
    y notificaciones**. Cada request ya usa el token del rol que corresponde. La carpeta 4 necesita MongoDB y RabbitMQ:
    muestra el historial armado a partir de la compra, la recomendación del evento de un artista favorito y los tres
    tipos de aviso (compra, cancelación y artista favorito).
+   La carpeta **5. Acceso con QR, reportes y fila virtual** compra una entrada y la valida en la puerta (y prueba que no
+   entra dos veces), muestra los reportes del organizador, y hace la fila de un evento de alta demanda hasta obtener
+   el turno y reservar con él (espera unos segundos a que salga la tanda).
 
 ### Autenticación (entrega 2)
 
@@ -174,7 +188,9 @@ Para empezar de cero: sin Docker, detener los servicios y borrar la carpeta `dat
 | `PUT /eventos/{id}/suspension`, `PUT /eventos/{id}/cancelacion` | ADMIN |
 | `/reservas/**`, `/entradas/**`, `POST /devoluciones` | CLIENTE |
 | `GET /devoluciones`, `PUT /devoluciones/{id}/aprobacion`, `PUT /devoluciones/{id}/rechazo`, `/auth/usuarios` | ADMIN |
-| `/preferencias`, `/recomendaciones` | CLIENTE |
+| `/preferencias`, `/recomendaciones`, `/filas/**` (ingreso, turno, salir) | CLIENTE |
+| `POST /accesos` (escanear QR) | ACCESO, ADMIN |
+| `GET /eventos/mis-eventos`, `GET /eventos/{id}/reporte`, `GET /filas/{id}/estado` | ORGANIZADOR (solo sus eventos), ADMIN |
 | `GET /notificaciones` | Cualquier usuario autenticado (ve las suyas) |
 
 Sin token (o con un token vencido o mal firmado) la respuesta es **401**; con un rol que no corresponde, **403**.
@@ -200,8 +216,13 @@ Desde cada carpeta de servicio: `mvn test` (o, en IntelliJ, clic derecho sobre `
 | preferencias-service | `PreferenciasIntegracionTest` * | Contra MongoDB real: preferencias, historial idempotente, recomendación por co-compra y búsqueda de interesados |
 | notificaciones-service | `NotificacionServiceTest` | Avisos de compra, cancelación (uno por comprador) y artista favorito; duplicados; fallas del canal y de preferencias |
 | notificaciones-service | `NotificacionesIntegracionTest` * | De punta a punta con RabbitMQ y MongoDB reales: mensaje publicado → aviso registrado, sin duplicados |
+| ventas-service | `AccesoTest` | Ingreso permitido, QR repetido, de otro evento, inexistente o no vigente, bitácora, no se devuelve una entrada usada, y **8 puertas escaneando el mismo QR a la vez: entra una sola** |
+| ventas-service | `EstadisticasTest` | Vendidas, utilizadas, devueltas y a reintegrar por sector, con sus montos |
+| ventas-service | `FilaVirtualTest` | En un evento con fila: sin turno, turno de otro cliente, de otro evento, vencido o falsificado → 403; con turno válido reserva |
+| catalogo-service | `ReporteYDuenioTest` | Ocupación y recaudación por sector y total, sectores sin ventas, ventas caído (503), otro organizador (403), admin, mis eventos |
+| fila-service | `FilaServiceTest` * | Contra Redis real: orden de llegada, reingreso sin perder el lugar, tandas en orden, una sola tanda por intervalo, turno firmado, salir, eventos sin fila |
 
-\* Usan **Testcontainers**: levantan MongoDB y RabbitMQ reales en contenedores, así que necesitan **Docker Desktop abierto**.
+\* Usan **Testcontainers**: levantan MongoDB, RabbitMQ o Redis reales en contenedores, así que necesitan **Docker Desktop abierto**.
 Si Docker no está disponible, esos tests se saltean (no fallan) y el resto corre igual.
 
 Los tests usan bases en memoria y simulan los servicios externos, así que no necesitan Docker ni que los otros servicios estén levantados.
@@ -244,7 +265,7 @@ Las limitaciones conocidas están detalladas en `docs/02-arquitectura.md`.
 | Pruebas de acceso por rol | Hecho |
 | Base NoSQL (MongoDB), preferencias y recomendaciones, notificaciones | Hecho |
 | Comunicación asincrónica (RabbitMQ) | Hecho |
-| Fila virtual, control de acceso con QR, reportes | Pendiente |
+| Control de acceso con QR, reportes para organizadores, fila virtual (Redis) | Hecho |
 | Caché, resiliencia (Circuit Breaker), compensaciones (Saga), log centralizado | Pendiente |
 | Pruebas de integración entre servicios y prueba de carga | Pendiente |
 

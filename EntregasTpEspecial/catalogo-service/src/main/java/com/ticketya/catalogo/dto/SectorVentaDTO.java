@@ -18,6 +18,7 @@ public record SectorVentaDTO(
         int capacidadTotal,
         Integer filas,
         Integer asientosPorFila,
-        BigDecimal precio
+        BigDecimal precio,
+        boolean filaVirtual
 ) {
 }
