@@ -2,8 +2,9 @@
 
 Todas las rutas se acceden por el gateway: `http://localhost:8080`.
 Documentación interactiva de cada servicio: `http://localhost:8081/swagger-ui.html` (catálogo) y
-`http://localhost:8082/swagger-ui.html` (ventas). Los OpenAPI exportados están en esta carpeta
-(`openapi-catalogo.json` y `openapi-ventas.json`).
+`http://localhost:8082/swagger-ui.html` (ventas). Con el sistema levantado, el gateway publica el OpenAPI de cada
+servicio en `GET http://localhost:8080/api-docs/{auth|catalogo|ventas|preferencias|notificaciones|fila}` (público), y
+`scripts/exportar-openapi.ps1` los guarda en esta carpeta (`openapi-{servicio}.json`).
 
 **Autenticación (entrega 2):** cada pedido protegido lleva `Authorization: Bearer <token>`, obtenido en
 `POST /auth/login`. El gateway valida el token y reenvía la identidad al servicio. Documentación interactiva de
@@ -179,7 +180,7 @@ Busca eventos **a la venta** (PUBLICADO o AGOTADO). Todos los parámetros son op
 | `participante` | Nombre o parte del nombre de un artista, equipo o disertante | `banda` |
 | `ciudad` | Ciudad del lugar | `Tandil` |
 | `desde`, `hasta` | Rango de fechas (ISO) | `2026-12-01T00:00:00` |
-| `orden` | `fecha` (por defecto) o `precio` (por el precio más bajo del evento) | `precio` |
+| `orden` | `fecha` (por defecto), `precio` (por el precio más bajo del evento) o `relevancia` (primero los que coinciden exacto con el artista u organizador buscado, después los que empiezan con el texto y por último los que lo contienen; a igual relevancia, por fecha) | `relevancia` |
 
 | Código | Cuándo |
 |---|---|

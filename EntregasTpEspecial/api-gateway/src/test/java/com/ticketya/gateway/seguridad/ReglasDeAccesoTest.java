@@ -21,6 +21,7 @@ class ReglasDeAccesoTest {
             "GET,  /eventos/1,                          ANONIMO,     PERMITIDO",
             "GET,  /lugares,                            ANONIMO,     PERMITIDO",
             "GET,  /disponibilidad/eventos/1/sectores/2, ANONIMO,    PERMITIDO",
+            "GET,  /api-docs/ventas,                    ANONIMO,     PERMITIDO",
 
             // ---- gestion de usuarios: solo ADMIN ----
             "POST, /auth/usuarios,                      ANONIMO,     NO_AUTENTICADO",

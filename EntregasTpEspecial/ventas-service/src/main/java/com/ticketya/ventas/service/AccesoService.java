@@ -1,5 +1,6 @@
 package com.ticketya.ventas.service;
 
+import com.ticketya.ventas.trazabilidad.Bitacora;
 import com.ticketya.ventas.dto.AccesoDTO;
 import com.ticketya.ventas.exception.ConflictException;
 import com.ticketya.ventas.exception.NotFoundException;
@@ -49,6 +50,9 @@ public class AccesoService {
         }
 
         Entrada e = r.entrada();
+        Bitacora.registrar(r.resultado() == ResultadoAcceso.PERMITIDO ? "INGRESO_PERMITIDO" : "INGRESO_RECHAZADO",
+                "evento=" + eventoId + " entrada=" + (e == null ? "-" : e.getId()) + " resultado=" + r.resultado()
+                        + " puerta=" + usuarioAccesoId);
         switch (r.resultado()) {
             case PERMITIDO:
                 return new AccesoDTO(ResultadoAcceso.PERMITIDO, e.getId(), e.getEventoId(), e.getSectorId(),

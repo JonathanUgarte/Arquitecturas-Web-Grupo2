@@ -36,5 +36,8 @@ public class Notificacion {
 
     private EstadoNotificacion estado;
     private String detalleError;
+
+    // Intentos de envio realizados (el primero + los reenvios automaticos de los FALLIDA)
+    private int intentos;
     private LocalDateTime fecha;
 }

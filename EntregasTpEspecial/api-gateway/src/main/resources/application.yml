@@ -45,6 +45,45 @@ spring:
               predicates:
                 - Path=/filas/**
 
+            # ---- documentacion OpenAPI de cada servicio, publicada por el gateway: GET /api-docs/{servicio} ----
+            # (cada servicio la genera con springdoc en /v3/api-docs; ver scripts/exportar-openapi.ps1)
+            - id: api-docs-auth
+              uri: ${AUTH_URL:http://localhost:8083}
+              predicates:
+                - Path=/api-docs/auth
+              filters:
+                - SetPath=/v3/api-docs
+            - id: api-docs-catalogo
+              uri: ${CATALOGO_URL:http://localhost:8081}
+              predicates:
+                - Path=/api-docs/catalogo
+              filters:
+                - SetPath=/v3/api-docs
+            - id: api-docs-ventas
+              uri: ${VENTAS_URL:http://localhost:8082}
+              predicates:
+                - Path=/api-docs/ventas
+              filters:
+                - SetPath=/v3/api-docs
+            - id: api-docs-preferencias
+              uri: ${PREFERENCIAS_URL:http://localhost:8084}
+              predicates:
+                - Path=/api-docs/preferencias
+              filters:
+                - SetPath=/v3/api-docs
+            - id: api-docs-notificaciones
+              uri: ${NOTIFICACIONES_URL:http://localhost:8085}
+              predicates:
+                - Path=/api-docs/notificaciones
+              filters:
+                - SetPath=/v3/api-docs
+            - id: api-docs-fila
+              uri: ${FILA_URL:http://localhost:8086}
+              predicates:
+                - Path=/api-docs/fila
+              filters:
+                - SetPath=/v3/api-docs
+
 # IMPORTANTE: las rutas /interno/** (comunicacion entre servicios) NO se publican aqui,
 # por eso no son accesibles desde afuera: el gateway responde 404.
 # Las direcciones de los servicios se pueden cambiar con variables de entorno (en Docker apuntan a

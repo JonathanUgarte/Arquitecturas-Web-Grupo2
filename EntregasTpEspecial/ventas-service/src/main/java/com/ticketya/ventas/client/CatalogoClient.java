@@ -4,6 +4,7 @@ import com.ticketya.ventas.config.VentasProperties;
 import com.ticketya.ventas.dto.SectorVentaDTO;
 import com.ticketya.ventas.exception.NotFoundException;
 import com.ticketya.ventas.exception.ServicioNoDisponibleException;
+import com.ticketya.ventas.trazabilidad.Correlacion;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -26,6 +27,7 @@ public class CatalogoClient {
         this.restClient = RestClient.builder()
                 .baseUrl(props.getCatalogoUrl())
                 .requestFactory(factory)
+                .requestInterceptor(Correlacion.propagar())   // reenvia el X-Correlation-Id
                 .build();
     }
 

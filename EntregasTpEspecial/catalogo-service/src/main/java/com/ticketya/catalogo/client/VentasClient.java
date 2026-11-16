@@ -1,6 +1,7 @@
 package com.ticketya.catalogo.client;
 
 import com.ticketya.catalogo.exception.ServicioNoDisponibleException;
+import com.ticketya.catalogo.trazabilidad.Correlacion;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class VentasClient {
         this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
                 .requestFactory(factory)
+                .requestInterceptor(Correlacion.propagar())   // reenvia el X-Correlation-Id
                 .build();
     }
 

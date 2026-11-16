@@ -14,6 +14,7 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import com.ticketya.catalogo.mensajeria.EventoPublicadoEvento;
 import com.ticketya.catalogo.config.CacheConfig;
+import com.ticketya.catalogo.trazabilidad.Bitacora;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -24,6 +25,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,6 +38,7 @@ public class EventoService {
     private final LugarRepository lugarRepo;
     private final PrecioSectorRepository precioRepo;
     private final ApplicationEventPublisher eventos;
+    private final Clock clock;
 
     // ---------- Crear (siempre en BORRADOR) ----------
     @Transactional
@@ -124,6 +127,7 @@ public class EventoService {
             throw new ConflictException("Faltan precios para los sectores: " + String.join(", ", sinPrecio));
         }
         e.setEstado(EstadoEvento.PUBLICADO);
+        Bitacora.registrar("EVENTO_PUBLICADO", "evento=" + e.getId() + " nombre=" + e.getNombre());
         // Se envia a RabbitMQ recien cuando la transaccion se confirma (ver PublicadorDeEventos)
         eventos.publishEvent(new EventoPublicadoEvento(e.getId(), e.getNombre(), e.getTipo().name(),
                 List.copyOf(e.getParticipantes()), e.getLugar().getCiudad(), e.getFechaHora()));
@@ -164,8 +168,9 @@ public class EventoService {
     @Transactional(readOnly = true)
     public List<EventoResumenDTO> buscar(TipoEvento tipo, String organizador, String participante, String ciudad,
                                          LocalDateTime desde, LocalDateTime hasta, String orden) {
-        if (orden != null && !orden.equalsIgnoreCase("fecha") && !orden.equalsIgnoreCase("precio")) {
-            throw new BadRequestException("El orden debe ser 'fecha' o 'precio'");
+        if (orden != null && !orden.equalsIgnoreCase("fecha") && !orden.equalsIgnoreCase("precio")
+                && !orden.equalsIgnoreCase("relevancia")) {
+            throw new BadRequestException("El orden debe ser 'fecha', 'precio' o 'relevancia'");
         }
 
         Specification<Evento> spec = (root, query, cb) -> {
@@ -202,8 +207,44 @@ public class EventoService {
         if ("precio".equalsIgnoreCase(orden)) {
             resultado.sort(Comparator.comparing(EventoResumenDTO::precioDesde,
                     Comparator.nullsLast(Comparator.naturalOrder())));
+        } else if ("relevancia".equalsIgnoreCase(orden)) {
+            // Mayor relevancia primero; a igual relevancia, el mas proximo (la lista ya viene por fecha y sort es estable)
+            resultado.sort(Comparator.comparingInt(
+                    (EventoResumenDTO e) -> relevancia(e, organizador, participante)).reversed());
         }
         return resultado;
+    }
+
+    // Relevancia de un resultado segun que tan bien coincide con el texto buscado (artista u organizador):
+    //   coincidencia exacta = 3, empieza con el texto = 2, lo contiene = 1 (se suman los dos criterios).
+    // Ej.: buscando participante "banda", "Banda" (exacta) aparece antes que "Banda Uno" y que "La Gran Banda".
+    // Sin texto buscado, todos valen 0 y queda el orden por fecha.
+    static int relevancia(EventoResumenDTO e, String organizador, String participante) {
+        int puntaje = 0;
+        if (participante != null && !participante.isBlank() && e.participantes() != null) {
+            puntaje += e.participantes().stream()
+                    .mapToInt(p -> coincidencia(p, participante))
+                    .max().orElse(0);
+        }
+        if (organizador != null && !organizador.isBlank()) {
+            puntaje += coincidencia(e.organizador(), organizador);
+        }
+        return puntaje;
+    }
+
+    private static int coincidencia(String valor, String buscado) {
+        if (valor == null) {
+            return 0;
+        }
+        String v = valor.trim().toLowerCase(Locale.ROOT);
+        String b = buscado.trim().toLowerCase(Locale.ROOT);
+        if (v.equals(b)) {
+            return 3;
+        }
+        if (v.startsWith(b)) {
+            return 2;
+        }
+        return v.contains(b) ? 1 : 0;
     }
 
     // ---------- Para el servicio de ventas: datos de un sector de un evento ----------
@@ -217,6 +258,50 @@ public class EventoService {
         return new SectorVentaDTO(e.getId(), e.getNombre(), e.getEstado(), e.getFechaHora(),
                 s.getId(), s.getNombre(), s.getTipo(), s.capacidadTotal(),
                 s.getFilas(), s.getAsientosPorFila(), p.getPrecio(), e.usaFilaVirtual());
+    }
+
+    // ---------- Estados automaticos: FINALIZADO y AGOTADO ----------
+
+    // Los eventos cuya fecha ya paso dejan de estar a la venta (tarea periodica). Devuelve cuantos finalizo.
+    @Caching(evict = {@CacheEvict(value = CacheConfig.EVENTO, allEntries = true),
+            @CacheEvict(value = CacheConfig.BUSQUEDAS, allEntries = true)})
+    @Transactional
+    public int finalizarEventosPasados() {
+        List<Evento> pasados = eventoRepo.findByEstadoInAndFechaHoraBefore(
+                List.of(EstadoEvento.PUBLICADO, EstadoEvento.AGOTADO, EstadoEvento.SUSPENDIDO), LocalDateTime.now(clock));
+        pasados.forEach(e -> e.setEstado(EstadoEvento.FINALIZADO));
+        return pasados.size();
+    }
+
+    // Estado y capacidad total en venta (suma de los sectores con precio), para decidir si esta agotado
+    public record Disponibilidad(EstadoEvento estado, int capacidad) {
+    }
+
+    @Transactional(readOnly = true)
+    public Disponibilidad disponibilidad(Long eventoId) {
+        Evento e = buscar(eventoId);
+        int capacidad = precioRepo.findByEventoId(eventoId).stream()
+                .mapToInt(p -> p.getSector().capacidadTotal())
+                .sum();
+        return new Disponibilidad(e.getEstado(), capacidad);
+    }
+
+    // PUBLICADO -> AGOTADO cuando se vendio toda la capacidad; AGOTADO -> PUBLICADO si una devolucion libera lugar.
+    // Devuelve true si cambio el estado.
+    @Caching(evict = {@CacheEvict(value = CacheConfig.EVENTO, key = "#p0"),
+            @CacheEvict(value = CacheConfig.BUSQUEDAS, allEntries = true)})
+    @Transactional
+    public boolean actualizarDisponibilidad(Long eventoId, boolean agotado) {
+        Evento e = buscar(eventoId);
+        if (agotado && e.getEstado() == EstadoEvento.PUBLICADO) {
+            e.setEstado(EstadoEvento.AGOTADO);
+            return true;
+        }
+        if (!agotado && e.getEstado() == EstadoEvento.AGOTADO) {
+            e.setEstado(EstadoEvento.PUBLICADO);
+            return true;
+        }
+        return false;
     }
 
     // ---------- Aviso de cancelacion a ventas (consistencia eventual) ----------

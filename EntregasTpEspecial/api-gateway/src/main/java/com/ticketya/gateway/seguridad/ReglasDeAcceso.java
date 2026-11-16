@@ -34,6 +34,7 @@ public class ReglasDeAcceso {
             new Regla("GET", "/eventos/**", PUBLICO),
             new Regla("GET", "/lugares/**", PUBLICO),
             new Regla("GET", "/disponibilidad/**", PUBLICO),
+            new Regla("GET", "/api-docs/**", PUBLICO),   // documentacion OpenAPI de los servicios
 
             // ---- auth: gestion de usuarios ----
             new Regla(null, "/auth/usuarios/**", Set.of(ADMIN)),

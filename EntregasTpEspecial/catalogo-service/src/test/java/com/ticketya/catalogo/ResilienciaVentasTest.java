@@ -72,6 +72,8 @@ class ResilienciaVentasTest {
         assertNotNull(ventasClient.estadisticas(1L));
         assertEquals(3, pedidos.get());
 
+        // Las 2 fallas de recien ya cuentan para el circuit breaker (en el test se abre con 4 llamadas y 50% de
+        // fallas). Se lo reinicia para probar solo los reintentos.
         circuitBreakers.circuitBreaker("ventas").reset();
         pedidos.set(0);
         erroresPendientes.set(Integer.MAX_VALUE);

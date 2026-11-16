@@ -39,6 +39,7 @@ class ResilienciaCatalogoTest {
     private static final AtomicInteger erroresPendientes = new AtomicInteger();
     private static volatile boolean responder404 = false;
     private static final AtomicInteger pedidos = new AtomicInteger();
+    private static volatile String ultimaCorrelacionRecibida;
     private static final HttpServer catalogo = iniciarCatalogoSimulado();
 
     @DynamicPropertySource
@@ -102,12 +103,24 @@ class ResilienciaCatalogoTest {
         assertEquals(antes, pedidos.get(), "con el circuito abierto no se llama al catalogo");
     }
 
+    @Test
+    void elIdDeCorrelacionSePropagaAlCatalogo() {
+        org.slf4j.MDC.put("correlationId", "id-de-prueba-123");
+        try {
+            catalogoClient.obtenerSector(1L, 2L);
+        } finally {
+            org.slf4j.MDC.remove("correlationId");
+        }
+        assertEquals("id-de-prueba-123", ultimaCorrelacionRecibida);
+    }
+
     // ---------- catalogo simulado ----------
     private static HttpServer iniciarCatalogoSimulado() {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
             server.createContext("/", exchange -> {
                 pedidos.incrementAndGet();
+                ultimaCorrelacionRecibida = exchange.getRequestHeaders().getFirst("X-Correlation-Id");
                 int status;
                 String cuerpo;
                 if (responder404) {

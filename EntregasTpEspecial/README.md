@@ -4,7 +4,8 @@ Plataforma de venta de entradas (ticketera virtual) basada en **microservicios c
 Trabajo práctico de Arquitectura Web (TUDAI). **Entrega 1** (núcleo: publicación, búsqueda y compra sin doble venta) completa;
 **Entrega 2** (sistema completo) en curso: ya incluye seguridad con JWT y roles, despliegue con Docker, MongoDB,
 preferencias y recomendaciones, notificaciones asincrónicas con RabbitMQ, control de acceso con QR, reportes para
-organizadores, fila virtual con Redis, resiliencia (reintentos y circuit breaker) y caché del catálogo.
+organizadores, fila virtual con Redis, resiliencia (reintentos y circuit breaker), caché del catálogo, log
+centralizado con Grafana y prueba de carga con JMeter.
 
 > Integrantes: Agustin pagola, Agustin Rebord, Jonatan Ugarte
 
@@ -19,7 +20,7 @@ organizadores, fila virtual con Redis, resiliencia (reintentos y circuit breaker
 - **API Gateway** como punto de entrada único.
 - Documentación OpenAPI (Swagger), colección de Postman, tests unitarios y de concurrencia.
 
-## Qué suma la entrega 2 (hasta ahora)
+## Qué suma la entrega 2
 
 - **Autenticación y autorización con JWT y roles** (`CLIENTE`, `ORGANIZADOR`, `ADMIN`, `ACCESO`): nuevo `auth-service`
   que registra usuarios y emite los tokens; el gateway los valida y aplica una tabla de permisos por endpoint.
@@ -41,8 +42,25 @@ organizadores, fila virtual con Redis, resiliencia (reintentos y circuit breaker
   solos cuando el otro servicio vuelve.
 - **Caché del catálogo en Redis**: detalle de eventos, búsquedas y lugares, con invalidación al cambiar un evento. La
   disponibilidad de asientos **no** se cachea (ver `docs/02-arquitectura.md`, sección 17).
+- **Trazabilidad y log centralizado**: el `X-Correlation-Id` viaja por todos los servicios (HTTP y RabbitMQ) y aparece en
+  cada línea de log; los logs de todos los servicios se ven juntos en **Grafana** (http://localhost:3000).
+- **Saga y consistencia**: la compra con sus compensaciones, y qué datos son de consistencia fuerte y cuáles eventual
+  (`docs/02-arquitectura.md`, sección 18). Justificación de patrones en la sección 20.
+- **Prueba de carga con JMeter** (`carga/compra-masiva.jmx`): apertura de venta masiva y asiento disputado por 100 clientes
+  a la vez. Instrucciones e informe en `docs/06-prueba-de-carga.md`.
 - **Comunicación asincrónica con RabbitMQ**: ventas y catálogo publican eventos (`compra.confirmada`, `evento.cancelado`,
-  `evento.publicado`) que consumen preferencias y notificaciones, con reintentos y cola de mensajes fallidos.
+  `evento.publicado`, `devolucion.aprobada`) que consumen preferencias, notificaciones y el propio catálogo, con
+  reintentos y cola de mensajes fallidos. Los avisos que no se pudieron enviar se reenvían solos.
+- **Estados automáticos del evento**: pasa a **AGOTADO** cuando se vende toda la capacidad (y vuelve a PUBLICADO si una
+  devolución libera lugar) y a **FINALIZADO** cuando su fecha ya pasó.
+- **Búsqueda por relevancia** (`orden=relevancia`): primero los eventos cuyo artista u organizador coincide exacto, después
+  los que empiezan con el texto buscado y por último los que lo contienen.
+- **Bitácora de operaciones críticas**: compras, devoluciones, cancelaciones e ingresos dejan una línea `BITACORA` con
+  su correlation id, que Grafana muestra en un panel propio.
+- **Documentación OpenAPI de todos los servicios publicada por el gateway** (`GET /api-docs/{servicio}`) y exportada a
+  `docs/openapi-*.json` con `scripts/exportar-openapi.ps1`.
+- **Pruebas de integración entre microservicios**: `scripts/pruebas-integracion.ps1` levanta el sistema entero con
+  docker-compose y corre toda la colección de Postman con Newman contra el gateway.
 
 ## Estructura del repositorio
 
@@ -69,7 +87,7 @@ Requisito: Docker Desktop (o Docker Engine con el plugin compose). Desde esta ca
 docker compose up --build
 ```
 
-La primera vez tarda unos minutos (descarga imágenes y dependencias de Maven). Levanta 13 contenedores:
+La primera vez tarda unos minutos (descarga imágenes y dependencias de Maven). Levanta 16 contenedores:
 
 | Tipo | Contenedores |
 |---|---|
@@ -79,11 +97,14 @@ La primera vez tarda unos minutos (descarga imágenes y dependencias de Maven). 
 | Fila virtual | `redis` (Redis 7) |
 | Microservicios | `auth-service`, `catalogo-service`, `ventas-service`, `preferencias-service`, `notificaciones-service`, `fila-service` |
 | Punto de entrada | `api-gateway` |
+| Log centralizado | `loki`, `promtail`, `grafana` |
 
 **Solo el gateway publica un puerto: `http://localhost:8080`.** Los servicios y las bases quedan en la red interna de
 Docker, así nadie puede saltearse la validación del JWT llamando directo a un servicio.
 
 - Detener: `docker compose down` · Detener y borrar los datos: `docker compose down -v`
+- **Log centralizado (Grafana):** http://localhost:3000, tablero "TicketYa - Log centralizado" (sin usuario). Para seguir un
+  pedido por todos los servicios, pegar su `X-Correlation-Id` (está en los headers de cada respuesta) en el filtro de texto.
 - **Consola de RabbitMQ:** http://localhost:15672 (usuario `ticketya`, clave `ticketya`): colas, mensajes y la cola de fallidos.
 - **MongoDB** (por ejemplo con MongoDB Compass): `mongodb://root:password@localhost:27017/?authSource=admin`.
 - MongoDB, RabbitMQ y Redis se publican solo en `127.0.0.1` (no quedan expuestos a la red), para estas herramientas y para
@@ -181,6 +202,30 @@ Para empezar de cero: sin Docker, detener los servicios y borrar la carpeta `dat
    el turno y reservar con él (espera unos segundos a que salga la tanda).
    La carpeta **6. Resiliencia y caché** paga con `TARJETA_INESTABLE` (la pasarela falla una vez y el reintento automático
    la aprueba) y con `PASARELA_CAIDA` (503, pero la reserva sigue vigente y el pago se reintenta).
+   La carpeta **7. Rutas internas y documentación OpenAPI** comprueba que `/interno/**` no se publica (404) y que la
+   documentación de los 6 servicios se obtiene por el gateway. Toda la colección se puede correr entera, de una vez.
+
+### Pruebas de integración entre microservicios (automáticas)
+
+Con Docker Desktop abierto, desde la raíz del proyecto:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/pruebas-integracion.ps1
+```
+
+El script hace `docker compose down -v` y `up --build`, espera a que el sistema responda y corre la colección de Postman
+completa con **Newman** (en un contenedor: no hay que instalar nada). Cada request entra por el gateway y recorre los
+servicios reales con sus bases, RabbitMQ y Redis. Deja un reporte JUnit en `carga/integracion/resultado.xml`.
+Con `-SinReconstruir` reutiliza el sistema ya levantado.
+
+### Documentación OpenAPI
+
+Cada servicio genera su documentación con springdoc; el gateway la publica en `http://localhost:8080/api-docs/{servicio}`
+(`auth`, `catalogo`, `ventas`, `preferencias`, `notificaciones`, `fila`). Para actualizar los archivos de `docs/`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/exportar-openapi.ps1
+```
 
 ### Autenticación (entrega 2)
 
@@ -220,10 +265,10 @@ Desde cada carpeta de servicio: `mvn test` (o, en IntelliJ, clic derecho sobre `
 | auth-service | `AuthControllerTest` | Registro (siempre CLIENTE), email repetido, login con JWT válido, contraseña incorrecta y alta solo por ADMIN |
 | api-gateway | `ReglasDeAccesoTest` | Tabla de permisos: cada endpoint, con cada rol (y sin token), da el resultado esperado |
 | api-gateway | `AutenticacionFilterTest` | 401 sin token, vencido o mal firmado; 403 con rol incorrecto; reenvío de la identidad del token y descarte de headers falsificados |
-| ventas-service | `EventosPublicadosTest` | Se publica una sola `compra.confirmada` aunque se reintente el pago, ninguna si se rechaza, y una sola `evento.cancelado` con los compradores |
+| ventas-service | `EventosPublicadosTest` | Se publica una sola `compra.confirmada` aunque se reintente el pago, ninguna si se rechaza, una sola `evento.cancelado` con los compradores y una `devolucion.aprobada` por devolución aprobada |
 | preferencias-service | `RecomendadorTest` | Puntaje de recomendaciones: co-compra, artista y tipo favorito, ciudad, arranque en frío, límite y desempate |
 | preferencias-service | `PreferenciasIntegracionTest` * | Contra MongoDB real: preferencias, historial idempotente, recomendación por co-compra y búsqueda de interesados |
-| notificaciones-service | `NotificacionServiceTest` | Avisos de compra, cancelación (uno por comprador) y artista favorito; duplicados; fallas del canal y de preferencias |
+| notificaciones-service | `NotificacionServiceTest` | Avisos de compra, cancelación (uno por comprador) y artista favorito; duplicados; fallas del canal y de preferencias; reenvío de avisos FALLIDA hasta 5 intentos |
 | notificaciones-service | `NotificacionesIntegracionTest` * | De punta a punta con RabbitMQ y MongoDB reales: mensaje publicado → aviso registrado, sin duplicados |
 | ventas-service | `AccesoTest` | Ingreso permitido, QR repetido, de otro evento, inexistente o no vigente, bitácora, no se devuelve una entrada usada, y **8 puertas escaneando el mismo QR a la vez: entra una sola** |
 | ventas-service | `EstadisticasTest` | Vendidas, utilizadas, devueltas y a reintegrar por sector, con sus montos |
@@ -235,6 +280,9 @@ Desde cada carpeta de servicio: `mvn test` (o, en IntelliJ, clic derecho sobre `
 | catalogo-service | `CancelacionPendienteTest` | Un aviso de cancelación no recibido queda pendiente y se reenvía hasta que ventas lo confirma |
 | catalogo-service | `CacheTest` | El detalle y las búsquedas salen de la caché y se invalidan al cambiar un evento; lugares |
 | catalogo-service | `SerializacionCacheTest` | Lo que se guarda en Redis se lee igual (fechas, listas, records) |
+| ventas-service | `CorrelacionTest` | El servicio respeta y devuelve el `X-Correlation-Id`, o genera uno |
+| catalogo-service | `EstadosAutomaticosTest` | AGOTADO al venderse toda la capacidad y vuelta a PUBLICADO con una devolución; un suspendido no cambia; FINALIZADO al pasar la fecha |
+| catalogo-service | `BusquedaRelevanciaTest` | Orden por relevancia: exacta, empieza con, contiene; a igual relevancia, la más próxima |
 | fila-service | `FilaServiceTest` * | Contra Redis real: orden de llegada, reingreso sin perder el lugar, tandas en orden, una sola tanda por intervalo, turno firmado, salir, eventos sin fila |
 
 \* Usan **Testcontainers**: levantan MongoDB, RabbitMQ o Redis reales en contenedores, así que necesitan **Docker Desktop abierto**.
@@ -247,11 +295,15 @@ Los tests usan bases en memoria y simulan los servicios externos, así que no ne
 | Documento | Contenido |
 |---|---|
 | [docs/01-user-stories.md](docs/01-user-stories.md) | Features y user stories de todo el sistema, con criterios de aceptación |
-| [docs/02-arquitectura.md](docs/02-arquitectura.md) | Microservicios, responsabilidades, API, diagrama de módulos, mecanismo contra la doble venta, decisiones y limitaciones |
+| [docs/02-arquitectura.md](docs/02-arquitectura.md) | Microservicios, API, diagramas, no doble venta, seguridad, Docker, mensajería, resiliencia, caché, Saga y consistencia, trazabilidad y justificación de patrones |
 | [docs/03-secuencia-compra.md](docs/03-secuencia-compra.md) | Diagrama de secuencia de la compra de una entrada numerada (pago rechazado y reserva vencida) |
 | [docs/04-modelo-de-datos.md](docs/04-modelo-de-datos.md) | Diagrama entidad-relación por microservicio y entidades solapadas |
 | [docs/05-api-endpoints.md](docs/05-api-endpoints.md) | Endpoints con parámetros, códigos de respuesta y ejemplos JSON |
-| `docs/openapi-catalogo.json`, `docs/openapi-ventas.json` | Documentación OpenAPI exportada de cada servicio |
+| [docs/06-prueba-de-carga.md](docs/06-prueba-de-carga.md) | Prueba de carga con JMeter: escenarios, cómo ejecutarla e informe de resultados |
+| [carga/compra-masiva.jmx](carga/compra-masiva.jmx) | Plan de prueba de JMeter (apertura de venta masiva y asiento disputado) |
+| [observabilidad/](observabilidad/) | Configuración del log centralizado (Promtail, Loki y el tablero de Grafana) |
+| `docs/openapi-*.json` | Documentación OpenAPI exportada de los 6 servicios (`scripts/exportar-openapi.ps1`) |
+| [scripts/](scripts/) | Pruebas de integración con Newman y exportación de OpenAPI |
 
 Los diagramas están escritos con Mermaid: se visualizan directamente en GitHub.
 
@@ -266,7 +318,7 @@ y una clave de idempotencia por pago (reintentos del cliente). El detalle está 
 - ~~Sin autenticación~~ (resuelto en la entrega 2 con JWT).
 - Pasarela de pagos simulada: rechaza los medios de pago que contienen "RECHAZ" y aprueba el resto.
 - Una base H2 por servicio (en la entrega 2: PostgreSQL en Docker y MongoDB para preferencias y notificaciones).
-- Orden por relevancia no implementado (se suma con las recomendaciones).
+- ~~Orden por relevancia no implementado~~ (resuelto en la entrega 2: `orden=relevancia`).
 - ~~Ejecución local, sin contenedores~~ (resuelto en la entrega 2 con Docker y docker-compose).
 
 Las limitaciones conocidas están detalladas en `docs/02-arquitectura.md`.
@@ -282,8 +334,12 @@ Las limitaciones conocidas están detalladas en `docs/02-arquitectura.md`.
 | Comunicación asincrónica (RabbitMQ) | Hecho |
 | Control de acceso con QR, reportes para organizadores, fila virtual (Redis) | Hecho |
 | Resiliencia (timeouts, reintentos, circuit breaker, fallback) y caché del catálogo | Hecho |
-| Compensaciones (Saga) documentadas, log centralizado | Pendiente |
-| Pruebas de integración entre servicios y prueba de carga | Pendiente |
+| Saga y consistencia documentadas, trazabilidad y log centralizado (Grafana + Loki) | Hecho |
+| Pruebas de integración (Testcontainers, servidores simulados, y Newman sobre docker-compose) | Hecho |
+| Estados AGOTADO / FINALIZADO automáticos, búsqueda por relevancia | Hecho |
+| Reenvío de notificaciones fallidas, bitácora de operaciones críticas | Hecho |
+| OpenAPI de los 6 servicios publicada por el gateway | Hecho |
+| Prueba de carga con JMeter (1501 pedidos, 0 % de errores, asiento disputado vendido una sola vez) | Hecho |
 
 ## Uso de herramientas de IA
 

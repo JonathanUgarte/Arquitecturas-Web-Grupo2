@@ -125,4 +125,55 @@ class NotificacionServiceTest {
         verify(repo).save(captor.capture());
         return captor.getValue();
     }
+
+    // ---- reenvio de avisos FALLIDA ----
+
+    private Notificacion fallida(int intentos) {
+        Notificacion n = new Notificacion();
+        n.setUsuarioId(1L);
+        n.setTitulo("Compra confirmada");
+        n.setMensaje("Tu compra #12 fue confirmada");
+        n.setClaveIdempotencia("COMPRA_CONFIRMADA:compra:12:1");
+        n.setEstado(EstadoNotificacion.FALLIDA);
+        n.setDetalleError("Canal caido");
+        n.setIntentos(intentos);
+        return n;
+    }
+
+    @Test
+    void unAvisoFallidoSeReenviaCuandoElCanalVuelve() {
+        Notificacion n = fallida(1);
+        when(repo.findByEstadoAndIntentosLessThan(EstadoNotificacion.FALLIDA, NotificacionService.MAX_INTENTOS))
+                .thenReturn(List.of(n));
+
+        assertEquals(1, servicio.reintentarFallidas());
+
+        verify(canal).enviar(1L, "Compra confirmada", "Tu compra #12 fue confirmada");
+        verify(repo).save(n);
+        assertEquals(EstadoNotificacion.ENVIADA, n.getEstado());
+        assertEquals(2, n.getIntentos());
+        assertNull(n.getDetalleError());
+    }
+
+    @Test
+    void siElCanalSigueCaidoQuedaFallidaYSumaElIntento() {
+        Notificacion n = fallida(MAX_MENOS_UNO);
+        when(repo.findByEstadoAndIntentosLessThan(EstadoNotificacion.FALLIDA, NotificacionService.MAX_INTENTOS))
+                .thenReturn(List.of(n));
+        doThrow(new RuntimeException("Canal caido")).when(canal).enviar(anyLong(), anyString(), anyString());
+
+        assertEquals(0, servicio.reintentarFallidas());
+
+        assertEquals(EstadoNotificacion.FALLIDA, n.getEstado());
+        assertEquals(NotificacionService.MAX_INTENTOS, n.getIntentos());   // ya no se vuelve a buscar
+        verify(repo).save(n);
+    }
+
+    @Test
+    void elPrimerEnvioCuentaComoIntento() {
+        servicio.compraConfirmada(new CompraConfirmadaEvento(12L, 1L, 5L, 1, BigDecimal.TEN, LocalDateTime.now()));
+        assertEquals(1, guardada().getIntentos());
+    }
+
+    private static final int MAX_MENOS_UNO = NotificacionService.MAX_INTENTOS - 1;
 }

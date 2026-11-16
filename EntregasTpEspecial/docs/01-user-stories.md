@@ -20,6 +20,7 @@ Roles: **Cliente**, **Organizador**, **Administrador**, **Personal de acceso**.
 | F10. Notificaciones | 11 | E2 |
 | F11. Reportes para organizadores | 12 | E2 |
 | F12. Seguridad (usuarios y roles) | transversal | E2 |
+| F13. Operación y calidad (trazabilidad, resiliencia) | no funcionales | E2 |
 
 ---
 
@@ -181,7 +182,7 @@ Criterios de aceptación:
 ## F6. Búsqueda de eventos (E1)
 
 ### US-17 Buscar eventos por múltiples criterios
-**Como** cliente **quiero** buscar eventos por tipo, organizador, participante, ciudad y rango de fechas, y ordenarlos por fecha o precio **para** encontrar rápido lo que me interesa.
+**Como** cliente **quiero** buscar eventos por tipo, organizador, participante, ciudad y rango de fechas, y ordenarlos por fecha, precio o relevancia **para** encontrar rápido lo que me interesa.
 
 Criterios de aceptación:
 - **Dado** cualquier combinación de filtros, **cuando** busco, **entonces** obtengo solo los eventos que cumplen todos.
@@ -190,32 +191,50 @@ Criterios de aceptación:
 - **Dado** el orden "fecha" (por defecto), **entonces** los resultados van del evento más próximo al más lejano.
 - **Dado** el orden "precio", **entonces** van de menor a mayor según el precio más bajo de cada evento.
 - **Dado** un orden inválido, **cuando** busco, **entonces** recibo 400.
-- El orden por **relevancia** se incorpora en la entrega 2 junto con las recomendaciones.
+- **Dado** el orden "relevancia" (entrega 2) y un artista u organizador buscado, **entonces** primero van los eventos que
+  coinciden exacto, después los que empiezan con ese texto y por último los que lo contienen; a igual relevancia, el más próximo.
+- **Dado** un evento que vendió toda su capacidad, **entonces** aparece como AGOTADO; si una devolución libera un lugar,
+  vuelve a PUBLICADO. **Dado** un evento cuya fecha ya pasó, **entonces** pasa a FINALIZADO y deja de aparecer.
 
 ---
 
 ## F7. Fila virtual (E2)
 
 ### US-18 Entrar a la fila virtual
-**Como** cliente **quiero** entrar a una fila virtual cuando se abre la venta de un evento de alta demanda **para** comprar de forma ordenada.
-- **Dado** un evento marcado de alta demanda, **cuando** se abre la venta y entro, **entonces** recibo mi posición en la fila.
-- **Dado** que mi turno llega, **cuando** consulto, **entonces** quedo habilitado para reservar durante un tiempo limitado.
+**Como** cliente **quiero** entrar a una fila virtual cuando se abre la venta de un evento de alta demanda **para** comprar de forma ordenada y justa.
+
+Criterios de aceptación:
+- **Dado** un evento PUBLICADO marcado con fila virtual, **cuando** entro a la fila, **entonces** recibo mi posición, cuántas personas tengo adelante y un tiempo estimado.
+- **Dado** que ya estoy en la fila, **cuando** vuelvo a entrar, **entonces** conservo mi lugar (no me adelanta ni me atrasa).
+- **Dado** un evento sin fila virtual o que no está a la venta, **cuando** intento entrar, **entonces** recibo 409.
+- **Dado** un evento con fila virtual, **cuando** intento reservar sin turno, con un turno vencido, de otro cliente o de otro evento, **entonces** recibo 403.
+- **Dado** que me habilitaron, **cuando** reservo enviando mi turno (`X-Turno-Fila`), **entonces** la reserva se crea normalmente.
 
 ### US-19 Habilitar por tandas
-**Como** organizador **quiero** que la fila habilite a los clientes por tandas **para** no saturar el sistema.
-- **Dado** una fila con muchos clientes, **entonces** se habilita una cantidad fija por tanda en orden de llegada.
-- **Dado** que una persona habilitada no compra a tiempo, **entonces** pierde el turno y se habilita a la siguiente.
+**Como** organizador **quiero** que la fila habilite a los clientes por tandas **para** no saturar el sistema en la apertura de la venta.
+
+Criterios de aceptación:
+- **Dado** una fila con clientes esperando, **cuando** pasa el intervalo (5 s), **entonces** se habilita una tanda de tamaño fijo (50) en estricto orden de llegada.
+- **Dado** que hay varias instancias del servicio de fila, **entonces** igual sale una sola tanda por intervalo y nadie se habilita dos veces.
+- **Dado** un cliente habilitado, **entonces** su turno vence a los 10 minutos; si no reservó, tiene que volver a entrar a la fila.
+- **Dado** un evento mío o de cualquier evento si soy administrador, **cuando** consulto el estado de la fila, **entonces** veo cuántos esperan y cuántos se habilitaron.
 
 ---
 
 ## F8. Control de acceso con QR (E2)
 
 ### US-20 Validar una entrada al ingreso
-**Como** personal de acceso **quiero** escanear el QR **para** validar la entrada.
-- **Dado** un QR de una entrada vendida de ese evento, **cuando** lo escaneo, **entonces** se acepta y la entrada pasa a USADA.
-- **Dado** un QR inexistente o de otro evento, **cuando** lo escaneo, **entonces** se rechaza.
-- **Dado** un QR ya usado, **cuando** lo escaneo de nuevo, **entonces** se rechaza (un QR no ingresa dos veces).
-- **Dado** una entrada devuelta o a reintegro, **cuando** la escaneo, **entonces** se rechaza.
+**Como** personal de acceso **quiero** escanear el QR de cada entrada **para** dejar pasar solo a quien tiene una entrada válida.
+
+Criterios de aceptación:
+- **Dado** el QR de una entrada vendida de este evento, **cuando** lo escaneo, **entonces** se permite el ingreso (200) y la entrada pasa a USADA con la hora de ingreso.
+- **Dado** un QR inexistente, **cuando** lo escaneo, **entonces** se rechaza con 404.
+- **Dado** un QR de otro evento, **cuando** lo escaneo, **entonces** se rechaza con 409 y la entrada no se consume.
+- **Dado** un QR ya usado, **cuando** lo escaneo de nuevo, **entonces** se rechaza con 409 e informa cuándo ingresó.
+- **Dado** el mismo QR escaneado en dos puertas al mismo tiempo, **entonces** ingresa una sola vez.
+- **Dado** una entrada devuelta o a reintegro, **cuando** la escaneo, **entonces** se rechaza con 409.
+- **Dado** cualquier escaneo, **entonces** queda registrado en la bitácora de accesos (permitido o con su motivo de rechazo).
+- **Dado** una entrada ya usada, **cuando** el cliente pide su devolución, **entonces** recibe 409.
 
 ---
 
@@ -223,26 +242,45 @@ Criterios de aceptación:
 
 ### US-21 Registrar mis preferencias
 **Como** cliente **quiero** indicar mis tipos de evento, artistas favoritos y ciudad **para** recibir sugerencias.
-- **Dado** que guardo mis preferencias, **cuando** las consulto, **entonces** veo lo guardado.
+
+Criterios de aceptación:
+- **Dado** que guardo mis preferencias, **cuando** las consulto, **entonces** veo lo guardado y mi historial de compras.
+- **Dado** un tipo de evento inexistente, **cuando** lo guardo, **entonces** recibo 400.
+- **Dado** que compro entradas, **entonces** la compra se agrega sola a mi historial (sin acción de mi parte).
 
 ### US-22 Recibir recomendaciones
-**Como** cliente **quiero** que me sugieran eventos según mi historial **para** descubrir nuevos eventos.
-- **Dado** que compré entradas para un evento, **cuando** pido recomendaciones, **entonces** veo eventos que compraron también quienes compraron ese evento.
-- **Dado** un cliente sin historial, **entonces** las sugerencias se basan en sus preferencias.
+**Como** cliente **quiero** que me sugieran eventos según mi historial y mis gustos **para** descubrir nuevos eventos.
+
+Criterios de aceptación:
+- **Dado** que compré entradas para un evento, **cuando** pido recomendaciones, **entonces** primero veo los eventos que más compraron quienes compraron lo mismo que yo.
+- **Dado** que un evento a la venta tiene a uno de mis artistas favoritos, es de un tipo favorito o es en mi ciudad, **entonces** sube en las recomendaciones.
+- **Dado** un evento que ya compré, **entonces** no se me recomienda.
+- **Dado** un cliente sin historial ni preferencias, **entonces** se sugieren los próximos eventos a la venta.
+- **Dado** cada recomendación, **entonces** se informan los motivos por los que se sugiere.
 
 ---
 
 ## F10. Notificaciones (E2)
 
 ### US-23 Confirmación de compra
-- **Dado** una compra aprobada, **entonces** el cliente recibe una notificación (email o push) con sus entradas.
+**Como** cliente **quiero** recibir un aviso cuando se confirma mi compra **para** tener constancia.
+- **Dado** una compra aprobada, **entonces** recibo una notificación con la compra, la cantidad de entradas y el total.
+- **Dado** que el mismo aviso llega dos veces al servicio de notificaciones, **entonces** lo recibo una sola vez.
 
-### US-24 Cambios y cancelaciones
-- **Dado** un evento que se cancela o cambia, **entonces** sus compradores reciben una notificación.
+### US-24 Cancelaciones
+**Como** cliente **quiero** enterarme si se cancela un evento para el que compré **para** saber que me reintegran el dinero.
+- **Dado** un evento que se cancela, **entonces** cada comprador recibe una notificación de que sus entradas pasan a reintegro.
+- *Simplificación:* no hay endpoint para modificar un evento publicado (fecha o lugar); si se agrega, se avisa con el mismo mecanismo.
 
 ### US-25 Artistas favoritos
+**Como** cliente **quiero** enterarme cuando un artista favorito toca en mi ciudad **para** no perderme el evento.
 - **Dado** que un artista favorito de un cliente publica un evento en su ciudad, **entonces** el cliente recibe una notificación.
-- **Dado** que el servicio de notificaciones falla, **entonces** la compra no se ve afectada y la notificación se reintenta.
+- **Dado** que el servicio de notificaciones está caído, **entonces** la compra no se ve afectada y los avisos se procesan cuando vuelve (quedan en la cola de RabbitMQ).
+- **Dado** que procesar un aviso falla repetidamente, **entonces** se reintenta 3 veces y queda en la cola de mensajes fallidos.
+
+### US-30 Ver mis notificaciones
+**Como** usuario **quiero** ver los avisos que recibí **para** consultarlos cuando quiera.
+- **Dado** que recibí avisos, **cuando** los consulto, **entonces** los veo del más reciente al más antiguo.
 
 ---
 
@@ -250,8 +288,16 @@ Criterios de aceptación:
 
 ### US-26 Consultar el desempeño de mis eventos
 **Como** organizador **quiero** ver entradas vendidas y devueltas por sector, porcentaje de ocupación y recaudación **para** evaluar mis eventos.
-- **Dado** un evento mío, **cuando** consulto el reporte, **entonces** veo vendidas y devueltas por sector, ocupación y recaudación.
-- **Dado** el evento de otro organizador, **cuando** intento consultarlo, **entonces** recibo 403.
+
+Criterios de aceptación:
+- **Dado** un evento mío, **cuando** consulto el reporte, **entonces** veo por sector y en total: vendidas, disponibles, devueltas, a reintegrar, ya ingresadas, porcentaje de ocupación y recaudación.
+- **Dado** el evento de otro organizador, **cuando** intento consultarlo, **entonces** recibo 403 (un administrador puede ver cualquiera).
+- **Dado** que el servicio de ventas no responde, **cuando** pido el reporte, **entonces** recibo 503 (no se muestran datos incompletos).
+
+### US-28 Gestionar solo mis eventos
+**Como** organizador **quiero** que solo yo pueda modificar los eventos que creé **para** que nadie más los altere.
+- **Dado** un evento creado por otro organizador, **cuando** intento cambiar sus precios o publicarlo, **entonces** recibo 403.
+- **Dado** que consulto "mis eventos", **entonces** veo los que creé, en cualquier estado.
 
 ---
 
@@ -259,9 +305,24 @@ Criterios de aceptación:
 
 ### US-27 Autenticación y roles
 **Como** usuario **quiero** iniciar sesión **para** que el sistema sepa quién soy y qué puedo hacer.
-- **Dado** credenciales válidas, **cuando** inicio sesión, **entonces** recibo un token JWT con mi rol.
-- **Dado** un token ausente, inválido o vencido, **entonces** recibo 401.
-- **Dado** un token válido con un rol que no corresponde al endpoint, **entonces** recibo 403.
 
-> En la entrega 1 no hay autenticación: el cliente se identifica con el header `X-Usuario-Id` y las acciones de
-> administrador exigen `X-Rol: ADMIN`.
+Criterios de aceptación:
+- **Dado** credenciales válidas, **cuando** inicio sesión, **entonces** recibo un token JWT con mi rol, válido 60 minutos.
+- **Dado** credenciales inválidas, **entonces** recibo 401 sin saber si falló el email o la contraseña.
+- **Dado** un token ausente, inválido o vencido, **cuando** llamo a un endpoint protegido, **entonces** recibo 401.
+- **Dado** un token válido con un rol que no corresponde al endpoint, **entonces** recibo 403.
+- **Dado** que envío headers `X-Usuario-Id` o `X-Rol` falsos, **entonces** el sistema los ignora y usa los del token.
+- **Dado** que me registro, **entonces** quedo siempre como CLIENTE; los demás roles los asigna un administrador.
+
+---
+
+## F13. Operación y calidad (E2, no funcionales)
+
+### US-29 Seguir el recorrido de un pedido
+**Como** administrador **quiero** encontrar todos los registros de un pedido en todos los servicios **para** diagnosticar problemas.
+- **Dado** un pedido con su `X-Correlation-Id`, **cuando** lo busco en el log centralizado, **entonces** veo las líneas de todos los servicios que intervinieron, incluidas las de los avisos asincrónicos.
+
+### US-31 Comprar aunque un servicio externo falle
+**Como** cliente **quiero** que una falla momentánea de la pasarela de pagos no me haga perder mis lugares **para** poder reintentar.
+- **Dado** que la pasarela falla una vez, **entonces** el pago se reintenta solo y se aprueba sin cobrar dos veces.
+- **Dado** que la pasarela no responde, **entonces** recibo 503, mi reserva sigue vigente y puedo reintentar el pago.

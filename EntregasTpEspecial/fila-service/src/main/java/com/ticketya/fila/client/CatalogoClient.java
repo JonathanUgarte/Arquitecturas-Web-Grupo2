@@ -2,6 +2,7 @@ package com.ticketya.fila.client;
 
 import com.ticketya.fila.exception.NotFoundException;
 import com.ticketya.fila.exception.ServicioNoDisponibleException;
+import com.ticketya.fila.trazabilidad.Correlacion;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,9 @@ public class CatalogoClient {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(2000);
         factory.setReadTimeout(3000);
-        this.restClient = builder.baseUrl(baseUrl).requestFactory(factory).build();
+        this.restClient = builder.baseUrl(baseUrl).requestFactory(factory)
+                .requestInterceptor(Correlacion.propagar())   // reenvia el X-Correlation-Id
+                .build();
     }
 
     public EventoFila evento(Long eventoId) {

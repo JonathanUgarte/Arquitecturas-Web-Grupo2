@@ -29,6 +29,9 @@ import java.util.Locale;
 @Slf4j
 public class NotificacionService {
 
+    // Un aviso FALLIDA se reenvia hasta completar este total de intentos; despues queda FALLIDA para revision
+    public static final int MAX_INTENTOS = 5;
+
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final NotificacionRepository repo;
@@ -98,21 +101,48 @@ public class NotificacionService {
         n.setReferencia(referencia);
         n.setClaveIdempotencia(clave);
         n.setFecha(LocalDateTime.now(reloj));
-        try {
-            canal.enviar(usuarioId, titulo, mensaje);
-            n.setEstado(EstadoNotificacion.ENVIADA);
-        } catch (RuntimeException ex) {
-            // Queda registrado como FALLIDA para poder reenviarlo (los reintentos se suman con la resiliencia)
-            log.warn("No se pudo enviar el aviso {}: {}", clave, ex.getMessage());
-            n.setEstado(EstadoNotificacion.FALLIDA);
-            n.setDetalleError(ex.getMessage());
-        }
+        enviar(n);
         try {
             repo.save(n);
         } catch (DuplicateKeyException ex) {
             // dos copias del mismo mensaje procesadas a la vez: el indice unico deja pasar solo una
             log.info("Aviso {} registrado por otro consumidor en paralelo", clave);
         }
+    }
+
+    // Un intento de envio por el canal. Si falla queda FALLIDA y la tarea periodica lo vuelve a intentar.
+    private void enviar(Notificacion n) {
+        n.setIntentos(n.getIntentos() + 1);
+        try {
+            canal.enviar(n.getUsuarioId(), n.getTitulo(), n.getMensaje());
+            n.setEstado(EstadoNotificacion.ENVIADA);
+            n.setDetalleError(null);
+        } catch (RuntimeException ex) {
+            log.warn("No se pudo enviar el aviso {} (intento {}): {}", n.getClaveIdempotencia(), n.getIntentos(),
+                    ex.getMessage());
+            n.setEstado(EstadoNotificacion.FALLIDA);
+            n.setDetalleError(ex.getMessage());
+        }
+    }
+
+    // ---- reenvio programado de los avisos que no se pudieron enviar (ver ReintentosProgramados) ----
+    // Devuelve cuantos se enviaron en esta pasada.
+    public int reintentarFallidas() {
+        int enviadas = 0;
+        for (Notificacion n : repo.findByEstadoAndIntentosLessThan(EstadoNotificacion.FALLIDA, MAX_INTENTOS)) {
+            enviar(n);
+            repo.save(n);
+            if (n.getEstado() == EstadoNotificacion.ENVIADA) {
+                enviadas++;
+            } else if (n.getIntentos() >= MAX_INTENTOS) {
+                log.error("El aviso {} no se pudo enviar despues de {} intentos: queda FALLIDA",
+                        n.getClaveIdempotencia(), n.getIntentos());
+            }
+        }
+        if (enviadas > 0) {
+            log.info("Avisos fallidos reenviados: {}", enviadas);
+        }
+        return enviadas;
     }
 
     private String nombreEvento(Long eventoId) {

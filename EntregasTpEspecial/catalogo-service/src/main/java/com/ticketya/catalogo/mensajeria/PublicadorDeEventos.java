@@ -1,5 +1,6 @@
 package com.ticketya.catalogo.mensajeria;
 
+import com.ticketya.catalogo.trazabilidad.Correlacion;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
@@ -21,7 +22,8 @@ public class PublicadorDeEventos {
     @TransactionalEventListener(fallbackExecution = true)
     public void eventoPublicado(EventoPublicadoEvento evento) {
         try {
-            rabbitTemplate.convertAndSend(MensajeriaConfig.EXCHANGE, EventoPublicadoEvento.CLAVE, evento);
+            rabbitTemplate.convertAndSend(MensajeriaConfig.EXCHANGE, EventoPublicadoEvento.CLAVE, evento,
+                    Correlacion.enMensaje());
             log.info("Evento publicado [{}]: {}", EventoPublicadoEvento.CLAVE, evento);
         } catch (AmqpException e) {
             log.warn("No se pudo publicar [{}] (RabbitMQ no disponible): {}", EventoPublicadoEvento.CLAVE, e.getMessage());

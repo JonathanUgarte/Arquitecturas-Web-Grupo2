@@ -1,5 +1,6 @@
 package com.ticketya.notificaciones.repository;
 
+import com.ticketya.notificaciones.model.EstadoNotificacion;
 import com.ticketya.notificaciones.model.Notificacion;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
@@ -10,4 +11,6 @@ public interface NotificacionRepository extends MongoRepository<Notificacion, St
     List<Notificacion> findByUsuarioIdOrderByFechaDesc(Long usuarioId);
 
     boolean existsByClaveIdempotencia(String claveIdempotencia);
+
+    List<Notificacion> findByEstadoAndIntentosLessThan(EstadoNotificacion estado, int intentos);
 }

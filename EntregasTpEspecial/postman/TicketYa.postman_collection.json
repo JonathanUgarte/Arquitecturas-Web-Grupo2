@@ -1191,12 +1191,60 @@
           ]
         },
         {
+          "name": "Buscar por participante ordenando por relevancia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos?participante=banda&orden=relevancia",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos"
+              ],
+              "query": [
+                {
+                  "key": "participante",
+                  "value": "banda"
+                },
+                {
+                  "key": "orden",
+                  "value": "relevancia"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "const r = pm.response.json();",
+                  "pm.test(\"Todos los resultados tienen al artista buscado\", function () {",
+                  "  r.forEach(e => pm.expect(e.participantes.some(p => p.toLowerCase().includes(\"banda\"))).to.be.true);",
+                  "});",
+                  "pm.test(\"Las coincidencias exactas van antes que las parciales\", function () {",
+                  "  const puntaje = e => Math.max(...e.participantes.map(p => { const v = p.toLowerCase(); return v === \"banda\" ? 3 : v.startsWith(\"banda\") ? 2 : v.includes(\"banda\") ? 1 : 0; }));",
+                  "  for (let k = 1; k < r.length; k++) { pm.expect(puntaje(r[k - 1])).to.be.at.least(puntaje(r[k])); }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Buscar con orden inválido -> 400",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/eventos?orden=relevancia",
+              "raw": "{{baseUrl}}/eventos?orden=popularidad",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1206,7 +1254,7 @@
               "query": [
                 {
                   "key": "orden",
-                  "value": "relevancia"
+                  "value": "popularidad"
                 }
               ]
             },
@@ -4300,7 +4348,7 @@
       ]
     },
     {
-      "name": "7. Rutas internas (comprobación)",
+      "name": "7. Rutas internas y documentación OpenAPI",
       "item": [
         {
           "name": "Ruta interna por el gateway -> 404 (no se publica)",
@@ -4337,23 +4385,18 @@
           ]
         },
         {
-          "name": "Ruta interna directa al catálogo (8081) -> 200",
+          "name": "OpenAPI de auth por el gateway -> 200",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8081/interno/eventos/{{eventoId}}/sectores/{{sectorCampo}}",
-              "protocol": "http",
+              "raw": "{{baseUrl}}/api-docs/auth",
               "host": [
-                "localhost"
+                "{{baseUrl}}"
               ],
-              "port": "8081",
               "path": [
-                "interno",
-                "eventos",
-                "{{eventoId}}",
-                "sectores",
-                "{{sectorCampo}}"
+                "api-docs",
+                "auth"
               ]
             },
             "auth": {
@@ -4366,7 +4409,174 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });"
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Es un documento OpenAPI 3\", function () { pm.expect(pm.response.json().openapi).to.match(/^3\\./); });",
+                  "pm.test(\"Documenta endpoints\", function () { pm.expect(Object.keys(pm.response.json().paths).length).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAPI de catalogo por el gateway -> 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api-docs/catalogo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api-docs",
+                "catalogo"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Es un documento OpenAPI 3\", function () { pm.expect(pm.response.json().openapi).to.match(/^3\\./); });",
+                  "pm.test(\"Documenta endpoints\", function () { pm.expect(Object.keys(pm.response.json().paths).length).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAPI de ventas por el gateway -> 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api-docs/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api-docs",
+                "ventas"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Es un documento OpenAPI 3\", function () { pm.expect(pm.response.json().openapi).to.match(/^3\\./); });",
+                  "pm.test(\"Documenta endpoints\", function () { pm.expect(Object.keys(pm.response.json().paths).length).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAPI de preferencias por el gateway -> 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api-docs/preferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api-docs",
+                "preferencias"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Es un documento OpenAPI 3\", function () { pm.expect(pm.response.json().openapi).to.match(/^3\\./); });",
+                  "pm.test(\"Documenta endpoints\", function () { pm.expect(Object.keys(pm.response.json().paths).length).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAPI de notificaciones por el gateway -> 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api-docs/notificaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api-docs",
+                "notificaciones"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Es un documento OpenAPI 3\", function () { pm.expect(pm.response.json().openapi).to.match(/^3\\./); });",
+                  "pm.test(\"Documenta endpoints\", function () { pm.expect(Object.keys(pm.response.json().paths).length).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAPI de fila por el gateway -> 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api-docs/fila",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api-docs",
+                "fila"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Es un documento OpenAPI 3\", function () { pm.expect(pm.response.json().openapi).to.match(/^3\\./); });",
+                  "pm.test(\"Documenta endpoints\", function () { pm.expect(Object.keys(pm.response.json().paths).length).to.be.above(0); });"
                 ]
               }
             }

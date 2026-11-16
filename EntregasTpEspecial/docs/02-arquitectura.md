@@ -143,18 +143,19 @@ Una cancelación de evento involucra a los dos servicios, y no existe una transa
 4. Si ventas no responde, el evento igual queda cancelado y la respuesta devuelve `reintegroNotificado: false`.
 
 Lo mismo se aplica al pago: la llamada a la pasarela se hace **fuera** de toda transacción de base de datos, para no
-mantener conexiones ni bloqueos tomados mientras se espera a un sistema externo. Las compensaciones automáticas (Saga),
-los reintentos programados y el circuit breaker se completan en la entrega 2.
+mantener conexiones ni bloqueos tomados mientras se espera a un sistema externo. En la entrega 2 se completan las
+compensaciones (Saga, sección 18), los reintentos programados y el circuit breaker (sección 16).
 
 ## 6. Decisiones y simplificaciones de la entrega 1
 
 | Tema | Decisión |
 |---|---|
 | Autenticación | Entrega 1: sin JWT (`X-Usuario-Id` y `X-Rol`). Entrega 2: JWT con roles, ver sección 9. |
-| Pasarela de pagos | Simulada (`PasarelaPagoMock`): rechaza los medios de pago cuyo nombre contiene "RECHAZ" y aprueba el resto. |
+| Pasarela de pagos | Simulada (`PasarelaPagoMock`): rechaza los medios de pago que contienen "RECHAZ", y en la entrega 2 simula fallas temporales ("INESTABLE": falla el primer intento) y caídas ("CAIDA"). Es idempotente por referencia. |
 | Bases de datos | Una base por servicio, esquemas separados: PostgreSQL (H2 en desarrollo) para auth, catálogo y ventas; MongoDB para preferencias y notificaciones. Justificación en `04-modelo-de-datos.md`. |
 | Reserva temporal | Vence a los 10 minutos (`ventas.reserva-minutos`). Máximo 4 entradas por cliente y evento (`ventas.max-entradas-por-evento`). |
-| Orden por relevancia | No implementado (se sumará con las recomendaciones). Se puede ordenar por fecha o por precio. |
+| Orden de la búsqueda | Por fecha (por defecto), por precio, o por **relevancia** (entrega 2): puntaje por coincidencia del texto buscado con el artista y el organizador (exacta 3, empieza con 2, contiene 1); a igual puntaje, por fecha. |
+| Estados automáticos | **AGOTADO**: catálogo consume `compra.confirmada` y `devolucion.aprobada`, consulta las vendidas a ventas y las compara con la capacidad en venta (consistencia eventual; la garantía de no sobreventa sigue en ventas, que acepta reservar en un evento AGOTADO y decide con su propia base). **FINALIZADO**: una tarea cada 5 minutos pasa a ese estado los eventos cuya fecha ya pasó. |
 | Despliegue | Entrega 2: un contenedor por servicio y por base, todo con `docker-compose.yml` (ver sección 10). |
 
 ## 7. Limitaciones conocidas
@@ -176,10 +177,10 @@ los reintentos programados y el circuit breaker se completan en la entrega 2.
 | Comunicación asíncrona donde se justifique | E2 (hecho: RabbitMQ para avisos e historial, sección 11) |
 | Una base de datos por servicio | E1 |
 | Concurrencia e idempotencia (doble venta) | E1 |
-| Trazabilidad: registro de cada solicitud y `X-Correlation-Id` | E1 (parcial en el gateway), E2 (log centralizado) |
+| Trazabilidad: registro de cada solicitud y `X-Correlation-Id` | E1 (gateway), E2 (hecho: en todos los servicios + log centralizado, sección 19) |
 | Seguridad con JWT y roles | E2 (hecho) |
 | Base NoSQL en al menos un servicio | E2 (hecho: MongoDB en preferencias y notificaciones) |
-| Consistencia entre servicios y compensaciones | E2 |
+| Consistencia entre servicios y compensaciones | E2 (hecho: Saga y consistencia eventual, sección 18) |
 | Resiliencia: reintentos, timeouts y fallback | E1 (timeouts), E2 (hecho: Resilience4j, sección 16) |
 | Caché de catálogo (y por qué no se cachea la disponibilidad) | E2 (hecho: Redis, sección 17) |
 | Docker y docker-compose | E2 (hecho) |
@@ -233,7 +234,7 @@ organizador (o un administrador) puede configurar precios, publicarlo y ver sus 
 
 ## 10. Despliegue con Docker (entrega 2)
 
-`docker compose up --build` levanta 13 contenedores en una red interna:
+`docker compose up --build` levanta 16 contenedores en una red interna:
 
 | Contenedor | Imagen | Puerto publicado |
 |---|---|---|
@@ -245,6 +246,8 @@ organizador (o un administrador) puede configurar precios, publicarlo y ver sus 
 | `rabbitmq` | `rabbitmq:3.13-management` | `127.0.0.1:5672` y consola web `127.0.0.1:15672` (solo local) |
 | `fila-service` | build de su `Dockerfile` | ninguno |
 | `redis` | `redis:7-alpine` | `127.0.0.1:6379` (solo local) |
+| `loki`, `promtail` | `grafana/loki:3.0.0`, `grafana/promtail:3.0.0` | ninguno |
+| `grafana` | `grafana/grafana:11.1.0` | `127.0.0.1:3000` (log centralizado) |
 
 - Cada `Dockerfile` compila con Maven en una primera etapa y copia solo el jar a una imagen con el JRE (más liviana).
 - Los servicios se comunican por el nombre del contenedor (`http://catalogo-service:8081`), configurado con variables
@@ -443,3 +446,116 @@ El catálogo cachea en **Redis** (compartido por todas sus instancias) lo que se
 - **El estado y el precio que ventas pide para reservar** (`/interno/eventos/{e}/sectores/{s}`): se vende con el dato
   actual. Si el administrador suspende o cancela un evento, no se puede seguir vendiendo por un valor cacheado.
 - **Reportes y "mis eventos"**: los usa un organizador por vez y tienen que estar al día.
+
+## 18. Consistencia y compensaciones: la compra como Saga (entrega 2)
+
+Una compra toca la base de ventas y la pasarela de pagos (un sistema externo), y después avisa a otros servicios. No
+existe una transacción que abarque todo eso, así que la compra se implementa como una **Saga orquestada por ventas**:
+una secuencia de **transacciones locales cortas**, cada una con su **compensación** si un paso posterior falla.
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDIENTE: T1 reservar (tx local: toma asientos o cupo)
+    PENDIENTE --> EN_PAGO: T2 iniciar pago (tx local + clave de idempotencia)
+    EN_PAGO --> CONFIRMADA: T3 cobro aprobado → emitir entradas (tx local)
+    EN_PAGO --> CANCELADA: C1 cobro rechazado → liberar lugares (compensación)
+    EN_PAGO --> PENDIENTE: C2 pasarela caída → volver a PENDIENTE (conserva lugares)
+    PENDIENTE --> VENCIDA: C3 no se pagó a tiempo → liberar lugares
+    CONFIRMADA --> [*]: T4 publicar compra.confirmada (asincrónico)
+```
+
+| Paso | Qué hace | Si falla un paso posterior, cómo se compensa |
+|---|---|---|
+| **T1** Reservar | Transacción local: toma los asientos (restricción única) o el cupo (bloqueo). Reserva PENDIENTE por 10 min. | **C3**: si no se paga a tiempo, la reserva vence y los lugares se liberan. |
+| **T2** Iniciar pago | Transacción local: reserva → EN_PAGO y compra PROCESANDO con su `Idempotency-Key`. Mientras está EN_PAGO nadie puede liberar esos lugares. | — |
+| Cobro (fuera de toda transacción) | Llamada a la pasarela, con reintentos, circuit breaker y una **referencia única** (no cobra dos veces). | — |
+| **T3** Confirmar | Transacción local: compra APROBADA, reserva CONFIRMADA, se emiten las entradas con QR. | Si el cobro se **rechaza**: **C1** cancela la reserva y libera los lugares. Si la pasarela **no responde**: **C2** la reserva vuelve a PENDIENTE (conserva los lugares) y el cliente reintenta. |
+| **T4** Avisar | Después del commit se publica `compra.confirmada` en RabbitMQ (historial y notificación). | No hace falta compensar la compra: los consumidores son idempotentes y reintentan; si RabbitMQ estaba caído, se pierde solo el aviso (ver *Transactional Outbox* abajo). |
+
+**Por qué orquestada y no coreografiada:** los pasos críticos (reservar, cobrar, emitir) están en un solo servicio, que
+conoce el estado completo y decide cada compensación. Las consecuencias que no afectan la venta (historial, avisos) sí
+son **coreografía**: ventas publica un evento y cada interesado reacciona por su cuenta.
+
+**Otras sagas del sistema:**
+
+| Proceso | Pasos | Compensación / recuperación |
+|---|---|---|
+| Cancelación de un evento | Catálogo cancela (tx local) → avisa a ventas (HTTP, reintentos) → ventas pasa entradas a reintegro (tx local, idempotente) → publica `evento.cancelado` → notificaciones avisa a cada comprador | Si ventas no recibe el aviso, el evento queda con el aviso **pendiente** y catálogo lo reenvía cada 30 s hasta que se confirme. |
+| Devolución aprobada | Ventas libera el lugar y marca la entrada DEVUELTA (tx local) → pide el reintegro a la pasarela | Si la pasarela no responde, el reintegro queda **pendiente** y se reintenta cada minuto. |
+
+### Consistencia fuerte vs. eventual
+
+| Dato | Tipo | Por qué |
+|---|---|---|
+| Asientos, cupo, entradas, uso del QR | **Fuerte** (una transacción en la base de ventas) | Es la garantía central: una entrada nunca se vende dos veces y un QR no ingresa dos veces. |
+| Estado del evento visto por ventas al reservar | **Fuerte** (se consulta a catálogo en cada reserva, sin caché) | No se puede vender un evento suspendido o cancelado. |
+| Entradas a reintegro tras una cancelación | **Eventual** (segundos; o cuando ventas vuelve) | El evento queda cancelado igual; la venta ya está cortada porque ventas consulta el estado. |
+| Historial de preferencias, notificaciones | **Eventual** (milisegundos vía RabbitMQ) | No afectan la venta; se pueden atrasar sin consecuencias. |
+| Catálogo visto por los clientes (caché) | **Eventual** (hasta 60 s en búsquedas) | Mostrar un precio "desde" unos segundos viejo no tiene consecuencias: al reservar se usa el actual. |
+| Reportes | **Fuerte al consultar** (composición en el momento) | El organizador ve siempre las ventas reales. |
+
+**Limitación conocida — Transactional Outbox:** los eventos de RabbitMQ se publican *después* del commit. Si RabbitMQ
+está caído justo en ese momento, el aviso se pierde (la compra no). La solución completa es guardar el mensaje en una
+tabla `outbox` en la misma transacción y que un proceso lo envíe después. Se dejó fuera por alcance.
+
+## 19. Trazabilidad y log centralizado (entrega 2)
+
+**X-Correlation-Id de punta a punta:**
+1. El gateway asigna un id a cada pedido (o respeta el que manda el cliente), lo reenvía al servicio y lo devuelve en la respuesta.
+2. Cada servicio lo toma en `FiltroDeCorrelacion`, lo pone en el **MDC** del log y lo devuelve en la respuesta. Todas
+   las líneas de log de ese pedido llevan `[servicio,correlationId]`.
+3. Las llamadas HTTP a otros servicios lo **reenvían** (interceptor del `RestClient`).
+4. Los mensajes de RabbitMQ lo llevan en un **header**, y el consumidor lo vuelve a poner en el MDC: el aviso de
+   notificaciones queda unido a la compra que lo originó, aunque ocurra en otro servicio y en otro momento.
+5. Cada servicio registra en la **bitácora** cada pedido: método, ruta, usuario, código de respuesta y tiempo.
+6. Las **operaciones críticas** dejan además una línea en el logger `BITACORA` (clase `trazabilidad/Bitacora`):
+   `COMPRA_APROBADA`, `COMPRA_RECHAZADA`, `PAGO_SIN_PASARELA`, `DEVOLUCION_SOLICITADA/APROBADA/RECHAZADA`,
+   `CANCELACION_PROCESADA`, `INGRESO_PERMITIDO/RECHAZADO` (ventas) y `EVENTO_PUBLICADO`, `EVENTO_CANCELADO`,
+   `EVENTO_AGOTADO`, `EVENTO_CON_LUGARES`, `EVENTOS_FINALIZADOS` (catálogo). Grafana las muestra en el panel
+   "Bitácora de operaciones críticas" (consulta `{servicio=~".+"} |= "BITACORA"`).
+
+**Log centralizado (Grafana + Loki + Promtail):** Promtail lee los logs de todos los contenedores, Loki los guarda y
+Grafana los muestra en **http://localhost:3000**, en el tablero "TicketYa - Log centralizado":
+- un panel con todas las líneas, filtrables por **servicio**, **nivel** y por **texto** (por ejemplo, un `X-Correlation-Id`);
+- la cantidad de líneas por servicio en el tiempo y la cantidad de errores.
+
+Para ver el recorrido de una compra: copiar el `X-Correlation-Id` de la respuesta (en Postman, pestaña *Headers*) y
+pegarlo en el filtro de texto. Aparecen las líneas del gateway, de ventas, de catálogo (si se consultó), y las de
+preferencias y notificaciones al consumir el mensaje de la compra.
+
+## 20. Patrones utilizados y por qué
+
+| Patrón | ¿Se usa? | Dónde y por qué |
+|---|---|---|
+| **API Gateway** | Sí | Spring Cloud Gateway: punto de entrada único, valida el JWT y los roles, asigna el `X-Correlation-Id` y oculta las rutas internas. Los clientes no conocen la topología de servicios. |
+| **Database per service** | Sí | Cada servicio con su base (PostgreSQL, MongoDB o Redis según el dato). Ningún servicio lee la base de otro. |
+| **Circuit Breaker** | Sí | Resilience4j hacia catálogo, ventas y la pasarela (sección 16): falla rápido cuando un servicio está caído y le da tiempo a recuperarse. |
+| **Retry + Timeout + Fallback** | Sí | Sección 16. Solo se reintentan operaciones idempotentes. |
+| **Saga** | Sí | La compra (orquestada por ventas) y la cancelación de eventos (coreografía por eventos), sección 18. |
+| **Publish/Subscribe (mensajería)** | Sí | RabbitMQ con un exchange *topic*: ventas y catálogo publican sin saber quién escucha. |
+| **Idempotent Consumer / Idempotency Key** | Sí | Pagos con `Idempotency-Key`; consumidores de RabbitMQ que ignoran duplicados; avisos de cancelación idempotentes. |
+| **Dead Letter Queue** | Sí | Mensajes que fallan 3 veces van a `ticketya.fallidos`. |
+| **Cache-aside** | Sí | Catálogo en Redis (sección 17). |
+| **API Composition** | Sí | El reporte del organizador combina datos de catálogo y de ventas en el momento (sección 14). |
+| **Gateway Offloading** | Sí | La autenticación se resuelve en el gateway; los servicios reciben la identidad ya validada. |
+| **Backend For Frontend (BFF)** | No (justificado) | Hay un único tipo de cliente (una app web/Postman) y el gateway ya expone una API pensada para él. Un BFF tiene sentido cuando distintos clientes (app móvil, web, lectores de acceso) necesitan respuestas muy diferentes; en ese caso se agregaría un BFF por cliente detrás del gateway. |
+| **Service Discovery** | No (justificado) | En Docker Compose los servicios se encuentran por **nombre de contenedor** (DNS interno de Docker) y sus direcciones se configuran por variables de entorno. Un registro como Eureka agrega otro componente sin beneficio con una instancia fija por servicio. Con varias instancias dinámicas (Kubernetes), el descubrimiento lo da la plataforma (Services) y tampoco haría falta Eureka. |
+| **Transactional Outbox** | No (limitación) | Ver sección 18. |
+
+## 21. Tecnologías elegidas y por qué
+
+| Necesidad | Tecnología | Por qué |
+|---|---|---|
+| Microservicios | Java 21 + Spring Boot 3.5 | Lo visto en la materia; Spring Data, validación, scheduling y testing integrados. |
+| Punto de entrada único | Spring Cloud Gateway (WebFlux) | Enruta por prefijo, valida el JWT una sola vez y no publica las rutas `/interno/**`. |
+| Autenticación | JWT HS256 (jjwt) + BCrypt | Sin estado: el gateway valida la firma sin consultar a auth-service en cada pedido. |
+| Datos transaccionales (auth, catálogo, ventas) | PostgreSQL (H2 en desarrollo y tests) | Transacciones, restricciones de unicidad y bloqueos: la garantía de no doble venta vive en la base. |
+| Preferencias, historial y notificaciones | MongoDB | Documentos de forma variable, mucha escritura y lectura por usuario, sin joins (ver `04-modelo-de-datos.md`). |
+| Comunicación asincrónica | RabbitMQ (exchange topic) | Desacopla a quien publica de quien consume; reintentos y cola de fallidos ya resueltos por el broker. |
+| Fila virtual y caché | Redis | Operaciones atómicas (ZSET, INCR, SET NX) y vencimiento por TTL; muy rápido para lecturas repetidas. |
+| Resiliencia | Resilience4j | Reintentos, circuit breaker y fallback con anotaciones, integrado con Spring Boot. |
+| Log centralizado | Loki + Promtail + Grafana | Livianos, se levantan con docker-compose y permiten filtrar por servicio, nivel y correlation id. |
+| Documentación de la API | springdoc-openapi | Genera OpenAPI 3 desde los controladores; el gateway la publica en `/api-docs/{servicio}`. |
+| Pruebas | JUnit 5, Mockito, Testcontainers, Postman/Newman, JMeter | Unitarias, contra infraestructura real en contenedores, de integración de punta a punta y de carga. |
+| Despliegue | Docker + docker-compose | Un contenedor por servicio y por base; todo el sistema con un solo comando. |
+

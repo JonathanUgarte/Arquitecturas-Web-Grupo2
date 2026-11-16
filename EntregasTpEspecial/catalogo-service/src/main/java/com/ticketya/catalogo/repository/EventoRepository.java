@@ -1,5 +1,9 @@
 package com.ticketya.catalogo.repository;
 
+import com.ticketya.catalogo.model.EstadoEvento;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 import com.ticketya.catalogo.model.Evento;
@@ -13,4 +17,6 @@ public interface EventoRepository extends JpaRepository<Evento, Long>, JpaSpecif
     List<Evento> findAllByOrderByFechaHoraAsc();
 
     List<Evento> findByAvisoCancelacionPendienteTrue();
+
+    List<Evento> findByEstadoInAndFechaHoraBefore(Collection<EstadoEvento> estados, LocalDateTime fecha);
 }

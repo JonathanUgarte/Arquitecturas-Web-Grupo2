@@ -29,3 +29,9 @@ data/
 .postman/
 # Secretos locales de docker compose
 .env
+
+# Resultados de la prueba de carga (se regeneran en cada corrida)
+carga/resultados*.jtl
+carga/reporte*/
+jmeter.log
+carga/integracion/

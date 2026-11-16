@@ -179,7 +179,7 @@ class EventoServiceTest {
 
     @Test
     void unOrdenInvalidoSeRechaza() {
-        assertThrows(BadRequestException.class, () -> buscar(null, null, null, null, null, null, "relevancia"));
+        assertThrows(BadRequestException.class, () -> buscar(null, null, null, null, null, null, "popularidad"));
     }
 
     // ---------- precios y publicacion ----------

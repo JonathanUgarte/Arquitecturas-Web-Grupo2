@@ -50,7 +50,8 @@ public class EventoController {
 
     @Operation(summary = "Buscar eventos por multiples criterios",
             description = "Devuelve solo eventos a la venta (PUBLICADO o AGOTADO). Todos los filtros son opcionales y se combinan. "
-                    + "Orden: 'fecha' (por defecto) o 'precio' (por el precio mas bajo).")
+                    + "Orden: 'fecha' (por defecto), 'precio' (por el precio mas bajo) o 'relevancia' (primero los que mejor "
+                    + "coinciden con el artista u organizador buscado: exacto, empieza con, contiene; a igual relevancia, por fecha).")
     @ApiResponse(responseCode = "200", description = "Lista de eventos que cumplen los criterios")
     @ApiResponse(responseCode = "400", description = "Orden o filtro con formato invalido")
     @GetMapping
@@ -67,7 +68,7 @@ public class EventoController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime desde,
             @Parameter(description = "Fecha hasta (ISO)", example = "2027-03-01T00:00:00")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime hasta,
-            @Parameter(description = "fecha o precio", example = "precio")
+            @Parameter(description = "fecha, precio o relevancia", example = "relevancia")
             @RequestParam(defaultValue = "fecha") String orden) {
         return ResponseEntity.ok(eventoService.buscar(tipo, organizador, participante, ciudad, desde, hasta, orden));
     }

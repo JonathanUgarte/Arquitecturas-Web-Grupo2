@@ -1,5 +1,6 @@
 package com.ticketya.ventas.service;
 
+import com.ticketya.ventas.trazabilidad.Bitacora;
 import com.ticketya.ventas.client.CatalogoClient;
 import com.ticketya.ventas.client.ClientePasarela;
 import com.ticketya.ventas.client.ResultadoPago;
@@ -33,6 +34,7 @@ import java.util.*;
 public class ReservaService {
 
     private static final String ESTADO_PUBLICADO = "PUBLICADO";
+    private static final String ESTADO_AGOTADO = "AGOTADO";
 
     private final CatalogoClient catalogoClient;
     private final ClientePasarela pasarela;
@@ -68,7 +70,9 @@ public class ReservaService {
             validadorDeTurnos.validar(turnoFila, usuarioId, req.eventoId());
         }
 
-        if (!ESTADO_PUBLICADO.equals(sector.estadoEvento())) {
+        // AGOTADO tambien se acepta: catalogo lo actualiza con unos milisegundos de demora (consistencia eventual)
+        // y la disponibilidad real la controla ventas en su propia base (si no hay lugar, la reserva falla igual)
+        if (!ESTADO_PUBLICADO.equals(sector.estadoEvento()) && !ESTADO_AGOTADO.equals(sector.estadoEvento())) {
             throw new ConflictException("El evento no esta a la venta (estado " + sector.estadoEvento() + ")");
         }
         if (!sector.fechaHora().isAfter(LocalDateTime.now(clock))) {
@@ -213,6 +217,8 @@ public class ReservaService {
         CompraDTO compra = tx.execute(status -> confirmarPago(inicio.compraId(), resultado));
 
         if (resultado.pasarelaNoDisponible()) {
+            Bitacora.registrar("PAGO_SIN_PASARELA", "compra=" + compra.id() + " usuario=" + usuarioId
+                    + " reserva=" + compra.reservaId());
             // Fallback: NO se pierde la reserva. Se informa 503 y el cliente reintenta el pago con otra clave.
             LocalDateTime vence = tx.execute(status -> reservaRepo.findById(compra.reservaId()).orElseThrow().getVenceEn());
             throw new ServicioNoDisponibleException("La pasarela de pagos no responde en este momento. Tu reserva sigue "
@@ -224,9 +230,15 @@ public class ReservaService {
         // Solo en el primer pago aprobado (un reintento con la misma clave sale antes y no vuelve a avisar).
         if (compra.estado() == EstadoCompra.APROBADA && !compra.entradas().isEmpty()
                 && compra.entradas().get(0).estado() == EstadoEntrada.VENDIDA) {
+            Bitacora.registrar("COMPRA_APROBADA", "compra=" + compra.id() + " usuario=" + usuarioId
+                    + " evento=" + compra.entradas().get(0).eventoId() + " entradas=" + compra.entradas().size()
+                    + " monto=" + compra.monto() + " transaccion=" + resultado.transaccionId());
             eventos.publishEvent(new CompraConfirmadaEvento(compra.id(), usuarioId,
                     compra.entradas().get(0).eventoId(), compra.entradas().size(), compra.monto(),
                     LocalDateTime.now(clock)));
+        } else if (compra.estado() == EstadoCompra.RECHAZADA && !resultado.aprobado()) {
+            Bitacora.registrar("COMPRA_RECHAZADA", "compra=" + compra.id() + " usuario=" + usuarioId
+                    + " motivo=" + resultado.motivo());
         }
         return compra;
     }

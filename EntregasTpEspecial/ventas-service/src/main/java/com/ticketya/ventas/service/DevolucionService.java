@@ -11,7 +11,10 @@ import com.ticketya.ventas.repository.AsientoOcupadoRepository;
 import com.ticketya.ventas.repository.DevolucionRepository;
 import com.ticketya.ventas.repository.EntradaRepository;
 import com.ticketya.ventas.repository.StockZonaRepository;
+import com.ticketya.ventas.mensajeria.DevolucionAprobadaEvento;
+import com.ticketya.ventas.trazabilidad.Bitacora;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -35,10 +38,11 @@ public class DevolucionService {
     private final AsientoOcupadoRepository asientoRepo;
     private final StockZonaRepository stockRepo;
     private final ClientePasarela pasarela;
+    private final ApplicationEventPublisher eventos;
     private final TransactionTemplate tx;
     private final Clock clock;
 
-    private record DatosReintegro(BigDecimal monto, String transaccionPago) {
+    private record DatosReintegro(BigDecimal monto, String transaccionPago, Long eventoId, Long usuarioId) {
     }
 
     // ---------- el cliente solicita la devolucion ----------
@@ -69,6 +73,8 @@ public class DevolucionService {
             d.setEstado(EstadoDevolucion.PENDIENTE);
             d.setSolicitadaEn(ahora);
             devolucionRepo.save(d);
+            Bitacora.registrar("DEVOLUCION_SOLICITADA", "devolucion=" + d.getId() + " entrada=" + e.getId()
+                    + " usuario=" + usuarioId + " monto=" + d.getMonto());
             return Mapeos.toDTO(d);
         });
     }
@@ -89,6 +95,13 @@ public class DevolucionService {
         }
         final boolean reintegroSolicitado = resultado;
 
+        // Se libero un lugar: catalogo lo usa para volver a poner a la venta un evento AGOTADO (asincronico)
+        eventos.publishEvent(new DevolucionAprobadaEvento(devolucionId, datos.eventoId(), datos.usuarioId(),
+                datos.monto(), LocalDateTime.now(clock)));
+        Bitacora.registrar("DEVOLUCION_APROBADA", "devolucion=" + devolucionId + " evento=" + datos.eventoId()
+                + " usuario=" + datos.usuarioId() + " monto=" + datos.monto()
+                + " reintegro=" + (reintegroSolicitado ? "pedido" : "pendiente"));
+
         // 3. transaccion: dejar registrado si el reintegro se pidio (si no, queda pendiente de reintentar)
         return tx.execute(status -> {
             Devolucion d = devolucionRepo.findById(devolucionId).orElseThrow();
@@ -108,7 +121,8 @@ public class DevolucionService {
         for (Long id : pendientes) {
             DatosReintegro datos = tx.execute(status -> {
                 Devolucion d = devolucionRepo.findById(id).orElseThrow();
-                return new DatosReintegro(d.getMonto(), d.getEntrada().getCompra().getTransaccionPago());
+                return new DatosReintegro(d.getMonto(), d.getEntrada().getCompra().getTransaccionPago(),
+                        d.getEntrada().getEventoId(), d.getUsuarioId());
             });
             try {
                 pasarela.reintegrar(datos.monto(), datos.transaccionPago());
@@ -147,7 +161,7 @@ public class DevolucionService {
             StockZona stock = stockRepo.findForUpdate(e.getEventoId(), e.getSectorId()).orElseThrow();
             stock.setDisponibles(stock.getDisponibles() + 1);
         }
-        return new DatosReintegro(d.getMonto(), e.getCompra().getTransaccionPago());
+        return new DatosReintegro(d.getMonto(), e.getCompra().getTransaccionPago(), e.getEventoId(), d.getUsuarioId());
     }
 
     // ---------- el administrador rechaza ----------
@@ -160,6 +174,7 @@ public class DevolucionService {
             }
             d.setEstado(EstadoDevolucion.RECHAZADA);
             d.setResueltaEn(LocalDateTime.now(clock));
+            Bitacora.registrar("DEVOLUCION_RECHAZADA", "devolucion=" + devolucionId + " usuario=" + d.getUsuarioId());
             return Mapeos.toDTO(d);
         });
     }

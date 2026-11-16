@@ -1,0 +1,33 @@
+# Promtail lee los logs de los contenedores de TicketYa (a traves del socket de Docker) y los envia a Loki.
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: ticketya
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # solo los microservicios y el gateway (no las bases ni la infraestructura)
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        regex: '(api-gateway|auth-service|catalogo-service|ventas-service|preferencias-service|notificaciones-service|fila-service)'
+        action: keep
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: servicio
+    pipeline_stages:
+      # una excepcion ocupa varias lineas: se juntan con la linea que empieza con la fecha
+      - multiline:
+          firstline: '^\d{4}-\d{2}-\d{2}T'
+          max_wait_time: 3s
+      # el nivel (INFO, WARN, ERROR) como etiqueta para poder filtrar
+      - regex:
+          expression: '^\S+\s+(?P<nivel>ERROR|WARN|INFO|DEBUG|TRACE)\s'
+      - labels:
+          nivel:

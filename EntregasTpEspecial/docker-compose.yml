@@ -5,6 +5,8 @@
 #  - MongoDB (configuracion de la catedra) para preferencias y notificaciones, cada uno con su propia base.
 #  - RabbitMQ para la comunicacion asincronica (eventos de compras, cancelaciones y publicaciones).
 #  - Redis para la fila virtual (fila-service) y la cache del catalogo.
+#  - Log centralizado: Promtail junta los logs de todos los servicios, Loki los guarda y Grafana los muestra
+#    (http://localhost:3000, tablero "TicketYa - Log centralizado").
 # Solo el gateway publica un puerto hacia afuera (8080): los servicios quedan en la red interna de Docker,
 # asi nadie puede saltearse la validacion del JWT llamando directo a un servicio.
 # MongoDB, RabbitMQ y Redis se publican solo en 127.0.0.1 (no en la red) para usar herramientas de desarrollo
@@ -199,6 +201,36 @@ services:
       - preferencias-service
       - notificaciones-service
       - fila-service
+
+  # ------------------------------------------------------------------ log centralizado
+  loki:
+    image: grafana/loki:3.0.0
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./observabilidad/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/ticketya-logs.json
+    volumes:
+      - ./observabilidad/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./observabilidad/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./observabilidad/grafana/ticketya-logs.json:/var/lib/grafana/dashboards/ticketya-logs.json:ro
+    depends_on:
+      - loki
 
 volumes:
   auth-data:

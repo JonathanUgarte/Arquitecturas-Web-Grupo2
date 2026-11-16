@@ -3,6 +3,7 @@ package com.ticketya.catalogo.service;
 import com.ticketya.catalogo.client.VentasClient;
 import com.ticketya.catalogo.dto.CancelacionDTO;
 import com.ticketya.catalogo.dto.EventoDTO;
+import com.ticketya.catalogo.trazabilidad.Bitacora;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,8 @@ public class CancelacionService {
         EventoDTO evento = eventoService.cancelar(eventoId, motivo);
         boolean notificado = ventasClient.notificarCancelacion(eventoId);   // con reintentos y circuit breaker
         eventoService.registrarAvisoCancelacion(eventoId, notificado);
+        Bitacora.registrar("EVENTO_CANCELADO", "evento=" + eventoId + " motivo=" + motivo
+                + " ventasNotificado=" + notificado);
         return new CancelacionDTO(evento.id(), evento.estado(), motivo, notificado);
     }
 

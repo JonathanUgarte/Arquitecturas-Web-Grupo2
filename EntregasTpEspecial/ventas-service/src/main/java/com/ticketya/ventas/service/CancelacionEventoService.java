@@ -1,5 +1,6 @@
 package com.ticketya.ventas.service;
 
+import com.ticketya.ventas.trazabilidad.Bitacora;
 import com.ticketya.ventas.dto.CancelacionEventoDTO;
 import com.ticketya.ventas.mensajeria.EventoCanceladoEvento;
 import com.ticketya.ventas.model.EstadoEntrada;
@@ -54,6 +55,8 @@ public class CancelacionEventoService {
         if (entradas > 0) {
             eventos.publishEvent(new EventoCanceladoEvento(eventoId, compradores, entradas, LocalDateTime.now(clock)));
         }
+        Bitacora.registrar("CANCELACION_PROCESADA", "evento=" + eventoId + " entradasAReintegrar=" + entradas
+                + " reservasCanceladas=" + reservas);
         return new CancelacionEventoDTO(eventoId, entradas, reservas);
     }
 }

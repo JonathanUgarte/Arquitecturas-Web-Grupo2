@@ -1,6 +1,7 @@
 package com.ticketya.notificaciones.client;
 
 import com.ticketya.notificaciones.exception.ServicioNoDisponibleException;
+import com.ticketya.notificaciones.trazabilidad.Correlacion;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -21,7 +22,9 @@ public class PreferenciasClient {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(2000);
         factory.setReadTimeout(3000);
-        this.restClient = builder.baseUrl(baseUrl).requestFactory(factory).build();
+        this.restClient = builder.baseUrl(baseUrl).requestFactory(factory)
+                .requestInterceptor(Correlacion.propagar())   // reenvia el X-Correlation-Id
+                .build();
     }
 
     // Si preferencias no responde se lanza la excepcion: el mensaje se reintenta y, si sigue fallando,
