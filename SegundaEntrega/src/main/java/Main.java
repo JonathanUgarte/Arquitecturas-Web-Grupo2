@@ -7,7 +7,6 @@ import jakarta.persistence.EntityManager;
 import repository.CarreraRepository;
 import repository.EstudianteRepository;
 import repository.JPAUtil;
-
 import java.util.List;
 
 public class Main {

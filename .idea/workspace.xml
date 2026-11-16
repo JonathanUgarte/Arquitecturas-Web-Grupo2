@@ -5,7 +5,140 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cc154d1f-e8a4-4785-b8a5-405c23f6df76" name="Changes" comment="fixes">
+      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SegundaEntrega/src/main/java/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/SegundaEntrega/src/main/java/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/api-gateway/.gitkeep" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/api-gateway/.gitkeep" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/api-gateway/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/api-gateway/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/api-gateway/src/main/java/com/ticketya/gateway/ApiGatewayApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/api-gateway/src/main/java/com/ticketya/gateway/ApiGatewayApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/api-gateway/src/main/java/com/ticketya/gateway/filter/RegistroDeSolicitudesFilter.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/api-gateway/src/main/java/com/ticketya/gateway/filter/RegistroDeSolicitudesFilter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/api-gateway/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/api-gateway/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/CatalogoServiceApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/CatalogoServiceApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/client/VentasClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/client/VentasClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/config/DatosDePrueba.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/config/DatosDePrueba.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/config/OpenApiConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/config/OpenApiConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/controller/EventoController.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/controller/EventoController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/controller/InternoController.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/controller/InternoController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/controller/LugarController.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/controller/LugarController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/CancelacionDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/CancelacionDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/CancelacionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/CancelacionRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/EventoDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/EventoDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/EventoRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/EventoRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/EventoResumenDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/EventoResumenDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/LugarDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/LugarDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/LugarRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/LugarRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/PrecioRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/PrecioRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/PrecioSectorDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/PrecioSectorDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/PreciosRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/PreciosRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/SectorDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/SectorDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/SectorRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/SectorRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/SectorVentaDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/dto/SectorVentaDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/BadRequestException.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/BadRequestException.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/ConflictException.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/ConflictException.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/ErrorDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/ErrorDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/ForbiddenException.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/ForbiddenException.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/GlobalExceptionHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/NotFoundException.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/exception/NotFoundException.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/model/EstadoEvento.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/model/EstadoEvento.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/model/Evento.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/model/Evento.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/model/Lugar.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/model/Lugar.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/model/PrecioSector.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/model/PrecioSector.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/model/Sector.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/model/Sector.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/model/TipoEvento.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/model/TipoEvento.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/model/TipoSector.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/model/TipoSector.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/repository/EventoRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/repository/EventoRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/repository/LugarRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/repository/LugarRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/repository/PrecioSectorRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/repository/PrecioSectorRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/service/CancelacionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/service/CancelacionService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/service/EventoService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/service/EventoService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/java/com/ticketya/catalogo/service/LugarService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/java/com/ticketya/catalogo/service/LugarService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/test/java/com/ticketya/catalogo/.gitkeep" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/test/java/com/ticketya/catalogo/.gitkeep" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/test/java/com/ticketya/catalogo/EventoServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/test/java/com/ticketya/catalogo/EventoServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/catalogo-service/src/test/resources/application-test.properties" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/src/test/resources/application-test.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/docs/.gitkeep" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/docs/.gitkeep" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/docs/01-user-stories.md" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/docs/01-user-stories.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/docs/02-arquitectura.md" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/docs/02-arquitectura.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/docs/03-secuencia-compra.md" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/docs/03-secuencia-compra.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/docs/04-modelo-de-datos.md" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/docs/04-modelo-de-datos.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/docs/05-api-endpoints.md" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/docs/05-api-endpoints.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/docs/openapi-catalogo.json" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/docs/openapi-catalogo.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/docs/openapi-ventas.json" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/docs/openapi-ventas.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/postman/.gitkeep" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/postman/.gitkeep" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/postman/TicketYa.postman_collection.json" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/postman/TicketYa.postman_collection.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/VentasServiceApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/VentasServiceApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/client/CatalogoClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/client/CatalogoClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/client/PasarelaPagoMock.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/client/PasarelaPagoMock.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/client/ResultadoPago.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/client/ResultadoPago.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/config/ClockConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/config/ClockConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/config/OpenApiConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/config/OpenApiConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/config/VentasProperties.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/config/VentasProperties.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/controller/DevolucionController.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/controller/DevolucionController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/controller/DisponibilidadController.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/controller/DisponibilidadController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/controller/EntradaController.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/controller/EntradaController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/controller/InternoController.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/controller/InternoController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/controller/ReservaController.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/controller/ReservaController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/controller/Seguridad.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/controller/Seguridad.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/AsientoDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/AsientoDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/AsientoRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/AsientoRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/CancelacionEventoDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/CancelacionEventoDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/CompraDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/CompraDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/DevolucionDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/DevolucionDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/DevolucionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/DevolucionRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/DisponibilidadDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/DisponibilidadDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/EntradaDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/EntradaDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/PagoRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/PagoRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/ReservaDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/ReservaDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/ReservaRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/ReservaRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/dto/SectorVentaDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/dto/SectorVentaDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/exception/BadRequestException.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/exception/BadRequestException.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/exception/ConflictException.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/exception/ConflictException.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/exception/ErrorDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/exception/ErrorDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/exception/ForbiddenException.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/exception/ForbiddenException.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/exception/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/exception/GlobalExceptionHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/exception/NotFoundException.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/exception/NotFoundException.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/exception/ServicioNoDisponibleException.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/exception/ServicioNoDisponibleException.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/AsientoOcupado.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/AsientoOcupado.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/Compra.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/Compra.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/Devolucion.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/Devolucion.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/Entrada.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/Entrada.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/EstadoCompra.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/EstadoCompra.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/EstadoDevolucion.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/EstadoDevolucion.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/EstadoEntrada.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/EstadoEntrada.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/EstadoReserva.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/EstadoReserva.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/EventoCancelado.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/EventoCancelado.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/Reserva.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/Reserva.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/StockZona.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/StockZona.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/model/TipoSector.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/model/TipoSector.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/repository/AsientoOcupadoRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/repository/AsientoOcupadoRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/repository/CompraRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/repository/CompraRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/repository/DevolucionRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/repository/DevolucionRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/repository/EntradaRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/repository/EntradaRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/repository/EventoCanceladoRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/repository/EventoCanceladoRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/repository/ReservaRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/repository/ReservaRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/repository/StockZonaRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/repository/StockZonaRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/service/CancelacionEventoService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/CancelacionEventoService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/service/DevolucionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/DevolucionService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/service/DisponibilidadService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/DisponibilidadService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/service/EntradaService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/EntradaService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/service/LiberacionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/LiberacionService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/service/Mapeos.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/Mapeos.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/service/ReservaService.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/ReservaService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/java/com/ticketya/ventas/service/StockZonaInicializador.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/java/com/ticketya/ventas/service/StockZonaInicializador.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/test/java/com/ticketya/ventas/.gitkeep" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/test/java/com/ticketya/ventas/.gitkeep" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/test/java/com/ticketya/ventas/CompraTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/test/java/com/ticketya/ventas/CompraTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/test/java/com/ticketya/ventas/ConfigPrueba.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/test/java/com/ticketya/ventas/ConfigPrueba.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/test/java/com/ticketya/ventas/DevolucionTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/test/java/com/ticketya/ventas/DevolucionTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/test/java/com/ticketya/ventas/DobleVentaTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/test/java/com/ticketya/ventas/DobleVentaTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/test/java/com/ticketya/ventas/RelojDePrueba.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/test/java/com/ticketya/ventas/RelojDePrueba.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/test/java/com/ticketya/ventas/VentasTestBase.java" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/test/java/com/ticketya/ventas/VentasTestBase.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/entrega-tp-especial/ventas-service/src/test/resources/application-test.properties" beforeDir="false" afterPath="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/src/test/resources/application-test.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,12 +179,12 @@
     &quot;assignee&quot;: &quot;JonathanUgarte&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/JonathanUgarte/Arquitecturas-Web-Grupo2.git",
-    "accountId": "00c1e065-2e14-4b07-97ef-24633cf59308"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/JonathanUgarte/Arquitecturas-Web-Grupo2.git&quot;,
+    &quot;accountId&quot;: &quot;00c1e065-2e14-4b07-97ef-24633cf59308&quot;
   }
-}]]></component>
+}</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
       <entry key="MS100" value="1.0" />
@@ -123,38 +256,112 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.jshint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.jshint&quot;: &quot;&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;advanced.settings&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "Application.Main.executor": "Run",
+    "JUnit.All in auth-service.executor": "Run",
+    "JUnit.All in catalogo-service.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "kotlin-language-version-configured": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.jshint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.jshint": "",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "run.configurations.included.in.services": "true",
+    "settings.editor.selected.configurable": "advanced.settings",
+    "to.speed.mode.migration.done": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;DatabaseDriversLRU&quot;: [
-      &quot;mysql&quot;
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "mysql"
     ]
   }
-}</component>
+}]]></component>
+  <component name="RunDashboard">
+    <option name="configurationTypes">
+      <set>
+        <option value="KtorApplicationConfigurationType" />
+        <option value="MicronautRunConfigurationType" />
+        <option value="QuarkusRunConfigurationType" />
+        <option value="SpringBootApplicationConfigurationType" />
+      </set>
+    </option>
+  </component>
+  <component name="RunManager" selected="JUnit.All in catalogo-service">
+    <configuration name="All in auth-service" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="auth-service" />
+      <option name="PACKAGE_NAME" value="" />
+      <option name="TEST_OBJECT" value="package" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="All in catalogo-service" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="catalogo-service" />
+      <option name="PACKAGE_NAME" value="" />
+      <option name="TEST_OBJECT" value="package" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ApiGatewayApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="api-gateway" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ticketya.gateway.ApiGatewayApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="AuthServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="auth-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ticketya.auth.AuthServiceApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="CatalogoServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="catalogo-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ticketya.catalogo.CatalogoServiceApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TerceraEntregaApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="TerceraEntrega" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.tudai.terceraentrega.TerceraEntregaApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="VentasServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="ventas-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ticketya.ventas.VentasServiceApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="JUnit.All in catalogo-service" />
+        <item itemvalue="JUnit.All in auth-service" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -175,6 +382,20 @@
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="dependencySupport" implementationName="java:org.springframework:spring-core" />
+    <option featureType="dependencySupport" implementationName="executable:docker" />
+    <option featureType="dependencySupport" implementationName="java:jakarta.validation:jakarta.validation-api" />
+    <option featureType="dependencySupport" implementationName="java:jakarta.persistence:jakarta.persistence-api" />
+    <option featureType="dependencySupport" implementationName="java:io.projectreactor:reactor-core" />
+    <option featureType="dependencySupport" implementationName="executable:kubectl" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework.data:spring-data-commons" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework.cloud:spring-cloud-context" />
+    <option featureType="dependencySupport" implementationName="java:org.hibernate.validator:hibernate-validator" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework.boot:spring-boot" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework:spring-webmvc" />
+    <option featureType="dependencySupport" implementationName="java:org.projectlombok:lombok" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">

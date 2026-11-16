@@ -7,6 +7,10 @@
         <option value="$PROJECT_DIR$/SegundaEntrega/pom.xml" />
         <option value="$PROJECT_DIR$/Primera entrega/pom.xml" />
         <option value="$PROJECT_DIR$/TerceraEntrega/pom.xml" />
+        <option value="$PROJECT_DIR$/EntregasTpEspecial/api-gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/EntregasTpEspecial/catalogo-service/pom.xml" />
+        <option value="$PROJECT_DIR$/EntregasTpEspecial/ventas-service/pom.xml" />
+        <option value="$PROJECT_DIR$/EntregasTpEspecial/auth-service/pom.xml" />
       </list>
     </option>
   </component>

@@ -1,0 +1,31 @@
+# Compilados
+target/
+*.class
+*.jar
+*.war
+
+# IntelliJ
+.idea/
+*.iml
+out/
+
+# VS Code
+.vscode/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Bases H2 en archivo
+*.mv.db
+*.trace.db
+
+# Logs
+*.log
+
+# Datos de las bases H2
+data/
+
+.postman/
+# Secretos locales de docker compose
+.env
