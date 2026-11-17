@@ -19,6 +19,7 @@ public class MensajeriaConfig {
     public static final String COLA_COMPRAS = "notificaciones.compras";
     public static final String COLA_CANCELACIONES = "notificaciones.cancelaciones";
     public static final String COLA_PUBLICACIONES = "notificaciones.publicaciones";
+    public static final String COLA_SUSPENSIONES = "notificaciones.suspensiones";
 
     @Bean
     public TopicExchange eventosExchange() {
@@ -53,6 +54,16 @@ public class MensajeriaConfig {
     @Bean
     public Queue colaPublicaciones() {
         return QueueBuilder.durable(COLA_PUBLICACIONES).deadLetterExchange(EXCHANGE_FALLIDOS).build();
+    }
+
+    @Bean
+    public Queue colaSuspensiones() {
+        return QueueBuilder.durable(COLA_SUSPENSIONES).deadLetterExchange(EXCHANGE_FALLIDOS).build();
+    }
+
+    @Bean
+    public Binding bindingSuspensiones() {
+        return BindingBuilder.bind(colaSuspensiones()).to(eventosExchange()).with("evento.suspendido");
     }
 
     @Bean

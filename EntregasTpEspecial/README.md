@@ -51,6 +51,10 @@ centralizado con Grafana y prueba de carga con JMeter.
 - **Comunicación asincrónica con RabbitMQ**: ventas y catálogo publican eventos (`compra.confirmada`, `evento.cancelado`,
   `evento.publicado`, `devolucion.aprobada`) que consumen preferencias, notificaciones y el propio catálogo, con
   reintentos y cola de mensajes fallidos. Los avisos que no se pudieron enviar se reenvían solos.
+- **Aviso por cambio de un evento**: si un administrador suspende un evento, cada cliente con entradas vigentes recibe una
+  notificación (`evento.suspendido` por RabbitMQ; los compradores se piden a ventas).
+- **Recuperación de pagos interrumpidos**: si ventas se cae en medio de un pago, una tarea periódica le pregunta a la
+  pasarela qué pasó con ese cobro y emite las entradas o libera los lugares (sin cobrar dos veces).
 - **Estados automáticos del evento**: pasa a **AGOTADO** cuando se vende toda la capacidad (y vuelve a PUBLICADO si una
   devolución libera lugar) y a **FINALIZADO** cuando su fecha ya pasó.
 - **Búsqueda por relevancia** (`orden=relevancia`): primero los eventos cuyo artista u organizador coincide exacto, después
@@ -61,6 +65,9 @@ centralizado con Grafana y prueba de carga con JMeter.
   `docs/openapi-*.json` con `scripts/exportar-openapi.ps1`.
 - **Pruebas de integración entre microservicios**: `scripts/pruebas-integracion.ps1` levanta el sistema entero con
   docker-compose y corre toda la colección de Postman con Newman contra el gateway.
+- **Interfaz gráfica para clientes** (`frontend/`, React + Vite): buscar eventos, elegir sector y asientos en un mapa,
+  fila virtual, reservar y pagar, ver las entradas con su QR, pedir devoluciones, preferencias, recomendaciones y avisos.
+  Consume la API solo a través del gateway. Ver [Interfaz gráfica](#interfaz-gráfica).
 
 ## Estructura del repositorio
 
@@ -75,6 +82,8 @@ catalogo-service/     Lugares, eventos, precios, publicación y búsqueda (puert
 ventas-service/       Reservas, pagos, entradas, devoluciones y disponibilidad (puerto 8082)
 docs/                 Diseño: user stories, arquitectura, diagramas, modelo de datos, endpoints y OpenAPI
 postman/              Colección de requests para probar todos los endpoints
+frontend/             Interfaz gráfica para clientes (React + Vite), servida con nginx en Docker (puerto 3001)
+scripts/              Pruebas de integración (Newman) y exportación de OpenAPI
 ```
 
 Cada servicio es un proyecto Spring Boot **independiente**, con su propio `pom.xml`, y se construye y ejecuta por separado.
@@ -87,7 +96,7 @@ Requisito: Docker Desktop (o Docker Engine con el plugin compose). Desde esta ca
 docker compose up --build
 ```
 
-La primera vez tarda unos minutos (descarga imágenes y dependencias de Maven). Levanta 16 contenedores:
+La primera vez tarda unos minutos (descarga imágenes y dependencias de Maven). Levanta 17 contenedores:
 
 | Tipo | Contenedores |
 |---|---|
@@ -97,6 +106,7 @@ La primera vez tarda unos minutos (descarga imágenes y dependencias de Maven). 
 | Fila virtual | `redis` (Redis 7) |
 | Microservicios | `auth-service`, `catalogo-service`, `ventas-service`, `preferencias-service`, `notificaciones-service`, `fila-service` |
 | Punto de entrada | `api-gateway` |
+| Interfaz gráfica | `frontend` (nginx con la aplicación React: **http://localhost:3001**) |
 | Log centralizado | `loki`, `promtail`, `grafana` |
 
 **Solo el gateway publica un puerto: `http://localhost:8080`.** Los servicios y las bases quedan en la red interna de
@@ -250,6 +260,43 @@ Sin token (o con un token vencido o mal firmado) la respuesta es **401**; con un
 Medios de pago de la pasarela simulada: `TARJETA_RECHAZADA` (rechazo definitivo, 402), `TARJETA_INESTABLE` (falla el primer
 intento y el reintento automático la aprueba) y `PASARELA_CAIDA` (no responde: 503 y la reserva se conserva).
 
+## Interfaz gráfica
+
+Aplicación web para **clientes** hecha con **React + Vite** (carpeta `frontend/`). Todos los pedidos van al gateway: el
+navegador llama a `/api/...` y un proxy (Vite en desarrollo, nginx en Docker) los reenvía a `http://localhost:8080`, así
+que no hace falta habilitar CORS en el gateway y el token JWT viaja igual que desde Postman.
+
+| Pantalla | Qué hace | API que usa |
+|---|---|---|
+| Eventos | Búsqueda por artista u organizador, ciudad, tipo y fechas; orden por relevancia, fecha o precio | `GET /eventos` |
+| Detalle del evento | Sectores con precio, **mapa de asientos** con los ocupados (o cantidad en zonas sin asiento), hasta 4 entradas | `GET /eventos/{id}`, `GET /disponibilidad/...` |
+| Fila virtual | En eventos de alta demanda: posición, personas adelante y tiempo estimado; al habilitarse, reserva con el turno | `/filas/{id}/ingreso`, `/filas/{id}/turno` |
+| Pago | Cuenta regresiva de la reserva (10 min), medio de pago con `Idempotency-Key`, simulación de fallas de la pasarela, cancelar | `POST /reservas`, `POST /reservas/{id}/pago`, `DELETE /reservas/{id}` |
+| Mis entradas | Entradas con su **código QR**, estado (vigente, usada, devuelta, reintegro), pedir devolución hasta 72 h antes | `GET /entradas`, `POST /devoluciones` |
+| Para vos | Recomendaciones con sus motivos | `GET /recomendaciones` |
+| Avisos | Notificaciones de compra, cancelación y artista favorito, con contador de no leídos | `GET /notificaciones` |
+| Preferencias | Ciudad, tipos y artistas favoritos, e historial de compras | `GET/PUT /preferencias` |
+| Ingresar / Crear cuenta | Login y registro (rol CLIENTE) | `POST /auth/login`, `POST /auth/registro` |
+
+Las tareas de organizadores, administradores y personal de acceso se siguen haciendo por la API (Postman o Swagger).
+
+**Con Docker:** `docker compose up --build` y abrir **http://localhost:3001**. Para tener más eventos de ejemplo,
+correr antes `scripts/pruebas-integracion.ps1` (la colección de Postman crea eventos, compras y avisos).
+
+**En desarrollo** (con el backend levantado en Docker o local, y Node.js 18 o superior):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+y abrir **http://localhost:5173** (se recarga sola al editar el código).
+
+Usuarios de prueba: `cliente@ticketya.com` y `cliente2@ticketya.com`, contraseña `ticketya123` (botones en la pantalla
+de ingreso). Para probar la fila virtual, el evento tiene que haberse creado con fila virtual (la colección de Postman
+crea uno: "Gira Masiva 2027").
+
 ## Tests
 
 Desde cada carpeta de servicio: `mvn test` (o, en IntelliJ, clic derecho sobre `src/test/java` y **Run Tests**).
@@ -268,7 +315,7 @@ Desde cada carpeta de servicio: `mvn test` (o, en IntelliJ, clic derecho sobre `
 | ventas-service | `EventosPublicadosTest` | Se publica una sola `compra.confirmada` aunque se reintente el pago, ninguna si se rechaza, una sola `evento.cancelado` con los compradores y una `devolucion.aprobada` por devolución aprobada |
 | preferencias-service | `RecomendadorTest` | Puntaje de recomendaciones: co-compra, artista y tipo favorito, ciudad, arranque en frío, límite y desempate |
 | preferencias-service | `PreferenciasIntegracionTest` * | Contra MongoDB real: preferencias, historial idempotente, recomendación por co-compra y búsqueda de interesados |
-| notificaciones-service | `NotificacionServiceTest` | Avisos de compra, cancelación (uno por comprador) y artista favorito; duplicados; fallas del canal y de preferencias; reenvío de avisos FALLIDA hasta 5 intentos |
+| notificaciones-service | `NotificacionServiceTest` | Avisos de compra, cancelación (uno por comprador) y artista favorito; duplicados; fallas del canal y de preferencias; reenvío de avisos FALLIDA hasta 5 intentos; aviso de suspensión a cada comprador (reintento si ventas no responde, sin duplicados) |
 | notificaciones-service | `NotificacionesIntegracionTest` * | De punta a punta con RabbitMQ y MongoDB reales: mensaje publicado → aviso registrado, sin duplicados |
 | ventas-service | `AccesoTest` | Ingreso permitido, QR repetido, de otro evento, inexistente o no vigente, bitácora, no se devuelve una entrada usada, y **8 puertas escaneando el mismo QR a la vez: entra una sola** |
 | ventas-service | `EstadisticasTest` | Vendidas, utilizadas, devueltas y a reintegrar por sector, con sus montos |
@@ -281,7 +328,9 @@ Desde cada carpeta de servicio: `mvn test` (o, en IntelliJ, clic derecho sobre `
 | catalogo-service | `CacheTest` | El detalle y las búsquedas salen de la caché y se invalidan al cambiar un evento; lugares |
 | catalogo-service | `SerializacionCacheTest` | Lo que se guarda en Redis se lee igual (fechas, listas, records) |
 | ventas-service | `CorrelacionTest` | El servicio respeta y devuelve el `X-Correlation-Id`, o genera uno |
-| catalogo-service | `EstadosAutomaticosTest` | AGOTADO al venderse toda la capacidad y vuelta a PUBLICADO con una devolución; un suspendido no cambia; FINALIZADO al pasar la fecha |
+| catalogo-service | `EstadosAutomaticosTest` | AGOTADO al venderse toda la capacidad y vuelta a PUBLICADO con una devolución; un suspendido no cambia; FINALIZADO al pasar la fecha; al suspender se publica el aviso |
+| ventas-service | `PagoColgadoTest` | Ventas se cae en medio del pago: si la pasarela cobró se emiten las entradas sin cobrar de nuevo; si no, se liberan los lugares; un pago reciente no se toca |
+| ventas-service | `CompradoresTest` | Compradores a avisar de un evento: sin repetidos y sin quienes devolvieron su entrada |
 | catalogo-service | `BusquedaRelevanciaTest` | Orden por relevancia: exacta, empieza con, contiene; a igual relevancia, la más próxima |
 | fila-service | `FilaServiceTest` * | Contra Redis real: orden de llegada, reingreso sin perder el lugar, tandas en orden, una sola tanda por intervalo, turno firmado, salir, eventos sin fila |
 
@@ -339,6 +388,7 @@ Las limitaciones conocidas están detalladas en `docs/02-arquitectura.md`.
 | Estados AGOTADO / FINALIZADO automáticos, búsqueda por relevancia | Hecho |
 | Reenvío de notificaciones fallidas, bitácora de operaciones críticas | Hecho |
 | OpenAPI de los 6 servicios publicada por el gateway | Hecho |
+| Interfaz gráfica (opcional): flujos del cliente en React | Hecho |
 | Prueba de carga con JMeter (1501 pedidos, 0 % de errores, asiento disputado vendido una sola vez) | Hecho |
 
 ## Uso de herramientas de IA

@@ -52,7 +52,7 @@ Mientras corre, en **Grafana** (http://localhost:3000) se ve la cantidad de lín
 
 Corrida del 16/11/2026 con los valores por defecto (200 usuarios con rampa de 20 s en el escenario 1, 100 usuarios
 simultáneos en el escenario 2), contra el sistema completo en Docker Desktop (16 contenedores) en una sola PC.
-Equipo: _(completar: procesador, RAM y memoria asignada a Docker)_.
+Equipo: _(completar: procesador: Intel Core I7, 8gb RAM y 7.606GiB memoria asignada a Docker )_.
 
 **Resumen de JMeter:** `1501 pedidos en 29 s = 51,9 pedidos/s · promedio 193 ms · mínimo 5 ms · máximo 1256 ms · errores: 0 (0,00 %)`
 

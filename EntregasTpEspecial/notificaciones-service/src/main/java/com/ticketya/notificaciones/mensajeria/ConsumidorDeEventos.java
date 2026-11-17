@@ -27,6 +27,12 @@ public class ConsumidorDeEventos {
         Correlacion.conId(correlacion, () -> notificacionService.eventoCancelado(evento));
     }
 
+    @RabbitListener(queues = MensajeriaConfig.COLA_SUSPENSIONES)
+    public void eventoSuspendido(EventoSuspendidoEvento evento,
+                                 @Header(name = Correlacion.HEADER, required = false) String correlacion) {
+        Correlacion.conId(correlacion, () -> notificacionService.eventoSuspendido(evento));
+    }
+
     @RabbitListener(queues = MensajeriaConfig.COLA_PUBLICACIONES)
     public void eventoPublicado(EventoPublicadoEvento evento,
                                 @Header(name = Correlacion.HEADER, required = false) String correlacion) {

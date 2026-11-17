@@ -3,10 +3,12 @@ package com.ticketya.notificaciones.service;
 import com.ticketya.notificaciones.canal.CanalDeEnvio;
 import com.ticketya.notificaciones.client.CatalogoClient;
 import com.ticketya.notificaciones.client.PreferenciasClient;
+import com.ticketya.notificaciones.client.VentasClient;
 import com.ticketya.notificaciones.exception.ServicioNoDisponibleException;
 import com.ticketya.notificaciones.mensajeria.CompraConfirmadaEvento;
 import com.ticketya.notificaciones.mensajeria.EventoCanceladoEvento;
 import com.ticketya.notificaciones.mensajeria.EventoPublicadoEvento;
+import com.ticketya.notificaciones.mensajeria.EventoSuspendidoEvento;
 import com.ticketya.notificaciones.model.EstadoNotificacion;
 import com.ticketya.notificaciones.model.Notificacion;
 import com.ticketya.notificaciones.model.TipoNotificacion;
@@ -34,6 +36,7 @@ class NotificacionServiceTest {
     private CanalDeEnvio canal;
     private CatalogoClient catalogo;
     private PreferenciasClient preferencias;
+    private VentasClient ventas;
     private NotificacionService servicio;
 
     @BeforeEach
@@ -42,10 +45,11 @@ class NotificacionServiceTest {
         canal = mock(CanalDeEnvio.class);
         catalogo = mock(CatalogoClient.class);
         preferencias = mock(PreferenciasClient.class);
+        ventas = mock(VentasClient.class);
         when(canal.nombre()).thenReturn("EMAIL");
         when(catalogo.nombreEvento(anyLong())).thenReturn(Optional.of("Recital de Prueba"));
         Clock reloj = Clock.fixed(Instant.parse("2026-11-16T15:00:00Z"), ZoneId.of("America/Argentina/Buenos_Aires"));
-        servicio = new NotificacionService(repo, canal, catalogo, preferencias, reloj);
+        servicio = new NotificacionService(repo, canal, catalogo, preferencias, ventas, reloj);
     }
 
     @Test
@@ -85,6 +89,40 @@ class NotificacionServiceTest {
 
         verify(canal, times(3)).enviar(anyLong(), eq("Evento cancelado"), contains("reintegro"));
         verify(repo, times(3)).save(any());
+    }
+
+    @Test
+    void laSuspensionAvisaACadaCompradorQueInformaVentas() {
+        when(ventas.compradores(5L)).thenReturn(List.of(1L, 2L));
+
+        servicio.eventoSuspendido(new EventoSuspendidoEvento(5L, "Recital de Prueba",
+                LocalDateTime.of(2027, 1, 15, 21, 0), LocalDateTime.now()));
+
+        verify(canal).enviar(eq(1L), eq("Evento suspendido"), contains("\"Recital de Prueba\" (previsto para el 15/01/2027 21:00)"));
+        verify(canal).enviar(eq(2L), eq("Evento suspendido"), contains("siguen siendo validas"));
+        ArgumentCaptor<Notificacion> captor = ArgumentCaptor.forClass(Notificacion.class);
+        verify(repo, times(2)).save(captor.capture());
+        assertEquals(TipoNotificacion.EVENTO_SUSPENDIDO, captor.getValue().getTipo());
+        assertEquals("EVENTO_SUSPENDIDO:evento:5:2", captor.getValue().getClaveIdempotencia());
+    }
+
+    @Test
+    void siVentasNoRespondeLaSuspensionSeReintentaPorRabbit() {
+        when(ventas.compradores(5L)).thenThrow(new ServicioNoDisponibleException("ventas caido"));
+
+        assertThrows(ServicioNoDisponibleException.class, () -> servicio.eventoSuspendido(
+                new EventoSuspendidoEvento(5L, "Recital de Prueba", null, LocalDateTime.now())));
+        verify(canal, never()).enviar(anyLong(), anyString(), anyString());
+    }
+
+    @Test
+    void unaSuspensionRepetidaNoDuplicaAvisos() {
+        when(ventas.compradores(5L)).thenReturn(List.of(1L));
+        when(repo.existsByClaveIdempotencia("EVENTO_SUSPENDIDO:evento:5:1")).thenReturn(true);
+
+        servicio.eventoSuspendido(new EventoSuspendidoEvento(5L, "Recital de Prueba", null, LocalDateTime.now()));
+
+        verify(canal, never()).enviar(anyLong(), anyString(), anyString());
     }
 
     @Test

@@ -19,6 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
+import com.ticketya.catalogo.mensajeria.EventoSuspendidoEvento;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -32,7 +35,10 @@ import static org.mockito.Mockito.when;
 // devolucion libera un lugar), y FINALIZADO cuando la fecha del evento ya paso.
 @SpringBootTest
 @ActiveProfiles("test")
+@RecordApplicationEvents
 class EstadosAutomaticosTest {
+
+    @Autowired ApplicationEvents eventosPublicados;
 
     @MockitoBean VentasClient ventasClient;
 
@@ -104,6 +110,16 @@ class EstadosAutomaticosTest {
         vendidas(100, 10);
         disponibilidadService.reevaluar(eventoId);
         assertEquals(EstadoEvento.SUSPENDIDO, estado());
+    }
+
+    @Test
+    void alSuspenderSePublicaElAvisoParaLosCompradores() {
+        eventoService.suspender(eventoId);
+
+        List<EventoSuspendidoEvento> avisos = eventosPublicados.stream(EventoSuspendidoEvento.class).toList();
+        assertEquals(1, avisos.size());
+        assertEquals(eventoId, avisos.get(0).eventoId());
+        assertEquals("Recital", avisos.get(0).nombre());
     }
 
     @Test

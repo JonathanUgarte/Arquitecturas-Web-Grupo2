@@ -1,5 +1,6 @@
 package com.ticketya.ventas.client;
 
+import java.util.Optional;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,12 @@ public class ClientePasarela {
     @CircuitBreaker(name = "pasarela")
     public ResultadoPago cobrar(String referencia, BigDecimal monto, String medioPago) {
         return pasarela.cobrar(referencia, monto, medioPago);
+    }
+
+    @Retry(name = "pasarela")
+    @CircuitBreaker(name = "pasarela")
+    public Optional<ResultadoPago> consultar(String referencia) {
+        return pasarela.consultar(referencia);
     }
 
     @Retry(name = "pasarela")

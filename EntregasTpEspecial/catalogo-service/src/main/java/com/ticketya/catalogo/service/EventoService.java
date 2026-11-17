@@ -13,6 +13,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import com.ticketya.catalogo.mensajeria.EventoPublicadoEvento;
+import com.ticketya.catalogo.mensajeria.EventoSuspendidoEvento;
 import com.ticketya.catalogo.config.CacheConfig;
 import com.ticketya.catalogo.trazabilidad.Bitacora;
 import lombok.RequiredArgsConstructor;
@@ -144,6 +145,10 @@ public class EventoService {
             throw new ConflictException("Solo se puede suspender un evento PUBLICADO o AGOTADO");
         }
         e.setEstado(EstadoEvento.SUSPENDIDO);
+        Bitacora.registrar("EVENTO_SUSPENDIDO", "evento=" + e.getId() + " nombre=" + e.getNombre());
+        // (11) cambio de un evento: notificaciones avisa a los compradores (despues del commit, por RabbitMQ)
+        eventos.publishEvent(new EventoSuspendidoEvento(e.getId(), e.getNombre(), e.getFechaHora(),
+                LocalDateTime.now(clock)));
         return toDTO(e);
     }
 

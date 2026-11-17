@@ -1,5 +1,7 @@
 package com.ticketya.ventas.controller;
 
+import com.ticketya.ventas.model.EstadoEntrada;
+import com.ticketya.ventas.repository.EntradaRepository;
 import com.ticketya.ventas.dto.CancelacionEventoDTO;
 import com.ticketya.ventas.dto.EstadisticaSectorDTO;
 import com.ticketya.ventas.service.CancelacionEventoService;
@@ -17,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-// Endpoints que usa SOLO el servicio de catalogo (cancelaciones y datos para reportes). El gateway no los expone.
+// Endpoints que usan SOLO otros servicios (cancelaciones, reportes, compradores a avisar). El gateway no los expone.
 @Tag(name = "Interno", description = "Uso exclusivo entre microservicios: no se publica en el gateway")
 @RestController
 @RequestMapping("/interno")
@@ -26,6 +28,7 @@ public class InternoController {
 
     private final CancelacionEventoService cancelacionEventoService;
     private final EstadisticasService estadisticasService;
+    private final EntradaRepository entradaRepo;
 
     @Operation(summary = "Avisar la cancelacion de un evento",
             description = "Las entradas vendidas pasan a A_REINTEGRAR y las reservas pendientes se liberan, en una sola transaccion. Es idempotente.")
@@ -33,6 +36,14 @@ public class InternoController {
     @PostMapping("/eventos/{eventoId}/cancelacion")
     public ResponseEntity<CancelacionEventoDTO> cancelarEvento(@PathVariable Long eventoId) {
         return ResponseEntity.ok(cancelacionEventoService.cancelarEvento(eventoId));
+    }
+
+    @Operation(summary = "Clientes con entradas vigentes de un evento",
+            description = "Ids de los clientes con al menos una entrada VENDIDA (para avisarles un cambio del evento).")
+    @ApiResponse(responseCode = "200", description = "Lista de ids de usuario, sin repetidos")
+    @GetMapping("/eventos/{eventoId}/compradores")
+    public ResponseEntity<List<Long>> compradores(@PathVariable Long eventoId) {
+        return ResponseEntity.ok(entradaRepo.usuariosConEntradasEnEstado(eventoId, EstadoEntrada.VENDIDA));
     }
 
     @Operation(summary = "Ventas por sector de un evento (para los reportes del organizador)",

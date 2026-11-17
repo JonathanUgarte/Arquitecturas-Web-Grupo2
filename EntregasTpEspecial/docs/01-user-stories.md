@@ -137,6 +137,8 @@ Criterios de aceptación:
 - **Dado** un pago enviado con una clave de idempotencia (header `Idempotency-Key`), **cuando** lo repito con la misma clave, **entonces** recibo el mismo resultado y no se genera un segundo cobro ni entradas duplicadas.
 - **Dado** una clave ya usada en otra reserva, **cuando** la reutilizo, **entonces** recibo 409.
 - **Dado** una reserva ya pagada, **cuando** intento pagarla con otra clave, **entonces** recibo 409.
+- **Dado** que el servicio de ventas se cae en medio de un pago (entrega 2), **cuando** vuelve, **entonces** el pago se
+  retoma solo: si la pasarela llegó a cobrar se emiten las entradas sin cobrar de nuevo, y si no cobró los lugares se liberan.
 
 ### US-13 Los lugares de una reserva vencida se liberan
 **Como** cliente **quiero** que los lugares no pagados vuelvan a estar disponibles **para** poder comprarlos.
@@ -267,10 +269,13 @@ Criterios de aceptación:
 - **Dado** una compra aprobada, **entonces** recibo una notificación con la compra, la cantidad de entradas y el total.
 - **Dado** que el mismo aviso llega dos veces al servicio de notificaciones, **entonces** lo recibo una sola vez.
 
-### US-24 Cancelaciones
-**Como** cliente **quiero** enterarme si se cancela un evento para el que compré **para** saber que me reintegran el dinero.
+### US-24 Cancelaciones y cambios de un evento
+**Como** cliente **quiero** enterarme si se cancela o cambia un evento para el que compré **para** saber qué pasa con mis entradas.
 - **Dado** un evento que se cancela, **entonces** cada comprador recibe una notificación de que sus entradas pasan a reintegro.
-- *Simplificación:* no hay endpoint para modificar un evento publicado (fecha o lugar); si se agrega, se avisa con el mismo mecanismo.
+- **Dado** un evento que un administrador suspende, **entonces** cada cliente con entradas vigentes recibe una notificación
+  de que el evento se suspendió y sus entradas siguen siendo válidas; quien devolvió su entrada no la recibe.
+- **Dado** que el servicio de ventas no responde al buscar los compradores, **entonces** el aviso se reintenta y no se pierde.
+- *Simplificación:* no hay endpoint para modificar fecha o lugar de un evento publicado; si se agrega, se avisa con el mismo mecanismo.
 
 ### US-25 Artistas favoritos
 **Como** cliente **quiero** enterarme cuando un artista favorito toca en mi ciudad **para** no perderme el evento.

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,6 +51,12 @@ public class PasarelaPagoMock {
         }
         cobrosProcesados.put(referencia, resultado);
         return resultado;
+    }
+
+    // Estado de un cobro por su referencia (como el "consultar pago" de las pasarelas reales): vacio si nunca
+    // llego a procesarse. No cobra nada.
+    public Optional<ResultadoPago> consultar(String referencia) {
+        return Optional.ofNullable(cobrosProcesados.get(referencia));
     }
 
     public void reintegrar(BigDecimal monto, String transaccionPago) {

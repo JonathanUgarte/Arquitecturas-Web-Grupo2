@@ -29,4 +29,15 @@ public class PublicadorDeEventos {
             log.warn("No se pudo publicar [{}] (RabbitMQ no disponible): {}", EventoPublicadoEvento.CLAVE, e.getMessage());
         }
     }
+
+    @TransactionalEventListener(fallbackExecution = true)
+    public void eventoSuspendido(EventoSuspendidoEvento evento) {
+        try {
+            rabbitTemplate.convertAndSend(MensajeriaConfig.EXCHANGE, EventoSuspendidoEvento.CLAVE, evento,
+                    Correlacion.enMensaje());
+            log.info("Evento publicado [{}]: {}", EventoSuspendidoEvento.CLAVE, evento);
+        } catch (AmqpException e) {
+            log.warn("No se pudo publicar [{}] (RabbitMQ no disponible): {}", EventoSuspendidoEvento.CLAVE, e.getMessage());
+        }
+    }
 }

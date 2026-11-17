@@ -343,6 +343,9 @@ Rechaza la solicitud: la entrada sigue vendida. Códigos: 200, 403, 404, 409.
 |---|---|---|
 | `GET /interno/eventos/{eventoId}/sectores/{sectorId}` | catalogo (8081) | Estado del evento, fecha, capacidad, filas, asientos por fila y precio de un sector. 404 si el sector no tiene precio en ese evento. |
 | `POST /interno/eventos/{eventoId}/cancelacion` | ventas (8082) | Pasa las entradas VENDIDA a A_REINTEGRAR y libera las reservas pendientes. Idempotente. |
+| `GET /interno/eventos/{eventoId}/estadisticas` | ventas (8082) | Vendidas, utilizadas, devueltas y a reintegrar por sector (reportes y estado AGOTADO). |
+| `GET /interno/eventos/{eventoId}/compradores` | ventas (8082) | Ids de los clientes con entradas vigentes (aviso de suspensión). |
+| `GET /interno/interesados?ciudad=&artistas=` | preferencias (8084) | Clientes de esa ciudad con alguno de esos artistas como favorito. |
 
 Si se intenta acceder a `/interno/**` por el gateway, responde 404.
 

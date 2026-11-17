@@ -52,8 +52,12 @@ public class ReservaService {
     private final ApplicationEventPublisher eventos;
     private final ValidadorDeTurnos validadorDeTurnos;
 
-    private record InicioPago(Long compraId, boolean nueva, boolean vencida, BigDecimal monto) {
+    private record InicioPago(Long compraId, boolean nueva, boolean vencida, BigDecimal monto, String referencia) {
     }
+
+    // Un pago que sigue PROCESANDO despues de este tiempo quedo colgado (ventas se cayo en medio del cobro):
+    // el cobro normal dura segundos (timeouts y 3 reintentos)
+    static final int MINUTOS_PAGO_COLGADO = 3;
 
     // =====================================================================
     // 1) RESERVAR
@@ -203,7 +207,7 @@ public class ReservaService {
         ResultadoPago cobro;
         // Con reintentos y circuit breaker (ClientePasarela). Todos los reintentos de este cobro usan la MISMA
         // referencia unica, asi la pasarela no cobra dos veces si un intento llego a cobrar pero no respondio a tiempo.
-        String referencia = "compra-" + inicio.compraId() + "-" + UUID.randomUUID();
+        String referencia = inicio.referencia();
         try {
             cobro = pasarela.cobrar(referencia, inicio.monto(), req.medioPago());
         } catch (RuntimeException e) {
@@ -243,6 +247,60 @@ public class ReservaService {
         return compra;
     }
 
+    // =====================================================================
+    // 3) RECUPERACION de pagos colgados (tarea periodica, ver ReintentosProgramados)
+    // =====================================================================
+    // Si ventas se cae entre "iniciar el pago" y "confirmarlo", la reserva queda EN_PAGO y sus lugares bloqueados.
+    // Esta tarea busca esas compras y le pregunta a la pasarela, por la referencia guardada, que paso con el cobro:
+    //   - se cobro       -> se emiten las entradas (el cliente pago: se completa la compra)
+    //   - nunca se cobro -> compensacion: la reserva se cancela y los lugares se liberan
+    //   - la pasarela no responde -> se deja para la proxima pasada
+    // Devuelve cuantas compras resolvio.
+    public int recuperarPagosColgados() {
+        LocalDateTime limite = LocalDateTime.now(clock).minusMinutes(MINUTOS_PAGO_COLGADO);
+        List<Compra> colgadas = tx.execute(s -> compraRepo.findByEstadoAndCreadaEnBefore(EstadoCompra.PROCESANDO, limite));
+        int resueltas = 0;
+        for (Compra c : colgadas) {
+            Optional<ResultadoPago> cobro;
+            try {
+                cobro = c.getReferenciaPago() == null ? Optional.empty() : pasarela.consultar(c.getReferenciaPago());
+            } catch (RuntimeException e) {
+                log.warn("No se pudo consultar a la pasarela el pago colgado de la compra {}: {}", c.getId(), e.getMessage());
+                continue;
+            }
+            ResultadoPago resultado = cobro.orElse(
+                    ResultadoPago.rechazado("El pago no llego a completarse: los lugares se liberaron"));
+            Recuperada r = tx.execute(s -> resolverColgada(c.getId(), resultado));
+            if (r == null) {
+                continue;   // otra instancia (o el propio pago) ya la resolvio
+            }
+            resueltas++;
+            if (r.compra().estado() == EstadoCompra.APROBADA && !r.compra().entradas().isEmpty()) {
+                Bitacora.registrar("PAGO_RECUPERADO", "compra=" + r.compra().id() + " usuario=" + r.usuarioId()
+                        + " transaccion=" + resultado.transaccionId());
+                eventos.publishEvent(new CompraConfirmadaEvento(r.compra().id(), r.usuarioId(),
+                        r.compra().entradas().get(0).eventoId(), r.compra().entradas().size(), r.compra().monto(),
+                        LocalDateTime.now(clock)));
+            } else {
+                Bitacora.registrar("PAGO_COLGADO_LIBERADO", "compra=" + r.compra().id() + " usuario=" + r.usuarioId()
+                        + " reserva=" + r.compra().reservaId());
+            }
+        }
+        return resueltas;
+    }
+
+    private record Recuperada(CompraDTO compra, Long usuarioId) {
+    }
+
+    private Recuperada resolverColgada(Long compraId, ResultadoPago resultado) {
+        Compra c = compraRepo.findById(compraId).orElseThrow();
+        if (c.getEstado() != EstadoCompra.PROCESANDO) {
+            return null;
+        }
+        Long usuarioId = c.getReserva().getUsuarioId();
+        return new Recuperada(confirmarPago(compraId, resultado), usuarioId);
+    }
+
     private InicioPago iniciarPagoSeguro(Long usuarioId, Long reservaId, String clave, String medioPago) {
         try {
             return tx.execute(status -> iniciarPago(usuarioId, reservaId, clave, medioPago));
@@ -268,7 +326,7 @@ public class ReservaService {
             if (c.getEstado() == EstadoCompra.PROCESANDO) {
                 throw new ConflictException("El pago de esta reserva esta en proceso");
             }
-            return new InicioPago(c.getId(), false, false, c.getMonto());
+            return new InicioPago(c.getId(), false, false, c.getMonto(), c.getReferenciaPago());
         }
 
         if (r.getEstado() != EstadoReserva.PENDIENTE) {
@@ -280,7 +338,7 @@ public class ReservaService {
             // Reserva vencida: se liberan los lugares y se informa al cliente (despues de confirmar la tx)
             liberacion.liberarLugares(r);
             r.setEstado(EstadoReserva.VENCIDA);
-            return new InicioPago(null, false, true, null);
+            return new InicioPago(null, false, true, null, null);
         }
 
         // EN_PAGO: mientras se cobra, nadie puede liberar estos lugares
@@ -293,7 +351,9 @@ public class ReservaService {
         c.setEstado(EstadoCompra.PROCESANDO);
         c.setCreadaEn(ahora);
         compraRepo.saveAndFlush(c);
-        return new InicioPago(c.getId(), true, false, r.getTotal());
+        // La referencia del cobro queda guardada en la misma transaccion, antes de llamar a la pasarela
+        c.setReferenciaPago("compra-" + c.getId() + "-" + UUID.randomUUID());
+        return new InicioPago(c.getId(), true, false, r.getTotal(), c.getReferenciaPago());
     }
 
     private CompraDTO confirmarPago(Long compraId, ResultadoPago resultado) {

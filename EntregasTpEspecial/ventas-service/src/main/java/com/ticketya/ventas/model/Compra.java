@@ -38,6 +38,10 @@ public class Compra {
     @Column(nullable = false)
     private EstadoCompra estado;
 
+    // Referencia con la que se pidio el cobro a la pasarela. Se guarda ANTES de cobrar: si ventas se cae en
+    // medio del pago, la recuperacion le pregunta a la pasarela por esta referencia (ver recuperarPagosColgados)
+    private String referenciaPago;
+
     private String transaccionPago;
     private String motivoRechazo;
 

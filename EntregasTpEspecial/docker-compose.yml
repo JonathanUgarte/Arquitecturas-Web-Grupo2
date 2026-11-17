@@ -7,8 +7,9 @@
 #  - Redis para la fila virtual (fila-service) y la cache del catalogo.
 #  - Log centralizado: Promtail junta los logs de todos los servicios, Loki los guarda y Grafana los muestra
 #    (http://localhost:3000, tablero "TicketYa - Log centralizado").
-# Solo el gateway publica un puerto hacia afuera (8080): los servicios quedan en la red interna de Docker,
-# asi nadie puede saltearse la validacion del JWT llamando directo a un servicio.
+# Solo el gateway (8080) y la interfaz grafica (3001, que le habla al gateway) publican un puerto hacia afuera:
+# los servicios quedan en la red interna de Docker, asi nadie puede saltearse la validacion del JWT.
+# Los servicios Java usan la hora de Argentina (TZ): las fechas sin zona de la API coinciden con las del navegador.
 # MongoDB, RabbitMQ y Redis se publican solo en 127.0.0.1 (no en la red) para usar herramientas de desarrollo
 # (MongoDB Compass, la consola web de RabbitMQ) y para correr los servicios desde IntelliJ.
 
@@ -102,6 +103,7 @@ services:
   auth-service:
     build: ./auth-service
     environment:
+      TZ: America/Argentina/Buenos_Aires
       SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth
       SPRING_DATASOURCE_USERNAME: ticketya
       SPRING_DATASOURCE_PASSWORD: ticketya
@@ -114,6 +116,7 @@ services:
   catalogo-service:
     build: ./catalogo-service
     environment:
+      TZ: America/Argentina/Buenos_Aires
       SPRING_DATASOURCE_URL: jdbc:postgresql://catalogo-db:5432/catalogo
       SPRING_DATASOURCE_USERNAME: ticketya
       SPRING_DATASOURCE_PASSWORD: ticketya
@@ -132,6 +135,7 @@ services:
   ventas-service:
     build: ./ventas-service
     environment:
+      TZ: America/Argentina/Buenos_Aires
       SPRING_DATASOURCE_URL: jdbc:postgresql://ventas-db:5432/ventas
       SPRING_DATASOURCE_USERNAME: ticketya
       SPRING_DATASOURCE_PASSWORD: ticketya
@@ -149,6 +153,7 @@ services:
   preferencias-service:
     build: ./preferencias-service
     environment:
+      TZ: America/Argentina/Buenos_Aires
       SPRING_DATA_MONGODB_URI: mongodb://root:password@mongo:27017/preferencias?authSource=admin
       SPRING_RABBITMQ_HOST: rabbitmq
       PREFERENCIAS_CATALOGOURL: http://catalogo-service:8081
@@ -161,6 +166,7 @@ services:
   fila-service:
     build: ./fila-service
     environment:
+      TZ: America/Argentina/Buenos_Aires
       SPRING_DATA_REDIS_HOST: redis
       FILA_CATALOGOURL: http://catalogo-service:8081
       TURNO_SECRET: ${TURNO_SECRET:-ticketya-secreto-de-turnos-fila-virtual-desarrollo-2026}
@@ -171,10 +177,12 @@ services:
   notificaciones-service:
     build: ./notificaciones-service
     environment:
+      TZ: America/Argentina/Buenos_Aires
       SPRING_DATA_MONGODB_URI: mongodb://root:password@mongo:27017/notificaciones?authSource=admin
       SPRING_RABBITMQ_HOST: rabbitmq
       NOTIFICACIONES_CATALOGOURL: http://catalogo-service:8081
       NOTIFICACIONES_PREFERENCIASURL: http://preferencias-service:8084
+      NOTIFICACIONES_VENTASURL: http://ventas-service:8082
     depends_on:
       mongo:
         condition: service_healthy
@@ -187,6 +195,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      TZ: America/Argentina/Buenos_Aires
       AUTH_URL: http://auth-service:8083
       CATALOGO_URL: http://catalogo-service:8081
       VENTAS_URL: http://ventas-service:8082
@@ -201,6 +210,15 @@ services:
       - preferencias-service
       - notificaciones-service
       - fila-service
+
+  # ------------------------------------------------------------------ interfaz grafica (React)
+  # nginx sirve la aplicacion compilada y reenvia /api/* al gateway: http://localhost:3001
+  frontend:
+    build: ./frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - api-gateway
 
   # ------------------------------------------------------------------ log centralizado
   loki:

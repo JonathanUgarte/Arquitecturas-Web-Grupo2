@@ -27,6 +27,7 @@ asincrónica a través de **RabbitMQ** (sección 11).
 ```mermaid
 flowchart LR
     subgraph Clientes["Sistemas externos"]
+        WEB["frontend :3001<br/>React (clientes)"]
         APP["Apps de clientes y organizadores"]
         BO["Backoffice administrativo"]
         LEC["Lectores de acceso (QR)"]
@@ -67,9 +68,10 @@ flowchart LR
     DBC[("PostgreSQL catalogo")]
     DBV[("PostgreSQL ventas")]
 
+    WEB -->|"/api/* (nginx)"| GW
     APP --> GW
     BO --> GW
-    LEC -.->|"entrega 2"| GW
+    LEC --> GW
     GW -->|"/auth"| AC
     GW -->|"/lugares, /eventos"| CC
     GW -->|"/reservas, /entradas, /devoluciones, /disponibilidad"| VC
@@ -87,11 +89,20 @@ flowchart LR
     FS -->|"GET /eventos/{e}"| CC
     PR --> MGP
     NR --> MGN
-    VS -.->|"compra.confirmada, evento.cancelado"| MQ
-    CS -.->|"evento.publicado"| MQ
+    VS -.->|"compra.confirmada, evento.cancelado, devolucion.aprobada"| MQ
+    CS -.->|"evento.publicado, evento.suspendido"| MQ
     MQ -.-> PC
     MQ -.-> NC
+    MQ -.->|"compra.confirmada, devolucion.aprobada (AGOTADO)"| CC
     NS -->|"GET /interno/interesados"| PC
+    NS -->|"GET /interno/eventos/{e}/compradores"| VC
+    CS -->|"GET /interno/eventos/{e}/estadisticas"| VC
+    CS -->|"cache"| RD
+
+    subgraph OBS["Log centralizado"]
+        PT["Promtail"] --> LK[("Loki")] --> GF["Grafana :3000"]
+    end
+    AUT & CAT & VEN & PRE & NOT & FIL -.->|"logs"| PT
 ```
 
 ## 3. API pública (a través del gateway, `http://localhost:8080`)
@@ -115,7 +126,8 @@ Detalle con ejemplos en [05-api-endpoints.md](05-api-endpoints.md) y en los Open
 | catalogo -> ventas | `POST /interno/eventos/{eventoId}/cancelacion` | Avisar la cancelación para pasar las entradas a reintegro. |
 | notificaciones -> preferencias | `GET /interno/interesados?ciudad=&artistas=` | Clientes de esa ciudad con alguno de esos artistas como favorito. |
 | preferencias, notificaciones, fila -> catalogo | `GET /eventos`, `GET /eventos/{id}` (públicos) | Eventos a la venta (candidatos a recomendar), nombre/tipo/ciudad de un evento y si usa fila virtual. |
-| catalogo -> ventas | `GET /interno/eventos/{eventoId}/estadisticas` | Ventas por sector para el reporte del organizador. |
+| catalogo -> ventas | `GET /interno/eventos/{eventoId}/estadisticas` | Ventas por sector para el reporte del organizador y para decidir si el evento está AGOTADO. |
+| notificaciones -> ventas | `GET /interno/eventos/{eventoId}/compradores` | Clientes con entradas vigentes, para avisarles que el evento se suspendió. |
 
 ## 4. Cómo se garantiza que una entrada no se venda dos veces
 
@@ -160,12 +172,22 @@ compensaciones (Saga, sección 18), los reintentos programados y el circuit brea
 
 ## 7. Limitaciones conocidas
 
-- Si el servicio de ventas se cae justo mientras una reserva está `EN_PAGO`, la reserva queda en ese estado hasta que se
-  resuelva manualmente. La entrega 2 lo resuelve con compensaciones.
-- Si el pago ya se aprobó cuando se cancela el evento, la entrada se emite directamente en `A_REINTEGRAR` (hay una marca de
-  evento cancelado para cubrir ese caso). Queda una ventana de milisegundos que también cubre la entrega 2.
-- Si catálogo no logra avisar la cancelación a ventas, el aviso no se reintenta automáticamente todavía.
-- Las llamadas entre servicios usan direcciones fijas (`localhost`); service discovery queda para la entrega 2.
+Las limitaciones de la entrega 1 quedaron resueltas en la entrega 2:
+
+| Limitación de la entrega 1 | Cómo se resolvió |
+|---|---|
+| Si ventas se caía con una reserva `EN_PAGO`, quedaba trabada | La referencia del cobro se guarda antes de llamar a la pasarela y una tarea periódica retoma los pagos colgados: si la pasarela cobró, emite las entradas; si no, libera los lugares (sección 18). |
+| Ventana de milisegundos entre un pago aprobado y la cancelación del evento | La marca de evento cancelado y el reenvío del aviso de cancelación hacen que esas entradas pasen a reintegro igual (secciones 16 y 18). |
+| El aviso de cancelación a ventas no se reintentaba | Reintentos con Resilience4j y, si ventas sigue caído, reenvío cada 30 s hasta que lo confirma. |
+| Direcciones fijas (`localhost`) entre servicios | Variables de entorno y nombres de contenedor en Docker; Service Discovery justificado en la sección 20. |
+
+Limitaciones que siguen:
+- **Transactional Outbox:** si RabbitMQ está caído justo al publicar un mensaje, ese aviso se pierde (la operación no).
+  Ver sección 18.
+- **Fila virtual y recomendaciones simplificadas** (secciones 12 y 15), como permite la consigna.
+- **No hay endpoint para modificar fecha o lugar de un evento publicado:** el "cambio de un evento" que se notifica es
+  la suspensión; un cambio de fecha usaría el mismo mecanismo (mensaje + aviso a los compradores).
+- **Canal de notificación simulado:** los avisos se registran y se "envían" por un email simulado (`EmailSimulado`).
 
 ## 8. Requisitos no funcionales y su entrega
 
@@ -234,7 +256,7 @@ organizador (o un administrador) puede configurar precios, publicarlo y ver sus 
 
 ## 10. Despliegue con Docker (entrega 2)
 
-`docker compose up --build` levanta 16 contenedores en una red interna:
+`docker compose up --build` levanta 17 contenedores en una red interna:
 
 | Contenedor | Imagen | Puerto publicado |
 |---|---|---|
@@ -248,6 +270,7 @@ organizador (o un administrador) puede configurar precios, publicarlo y ver sus 
 | `redis` | `redis:7-alpine` | `127.0.0.1:6379` (solo local) |
 | `loki`, `promtail` | `grafana/loki:3.0.0`, `grafana/promtail:3.0.0` | ninguno |
 | `grafana` | `grafana/grafana:11.1.0` | `127.0.0.1:3000` (log centralizado) |
+| `frontend` | build de `frontend/Dockerfile` (Node para compilar, `nginx:1.27-alpine` para servir) | **3001** (interfaz gráfica; le habla al gateway) |
 
 - Cada `Dockerfile` compila con Maven en una primera etapa y copia solo el jar a una imagen con el JRE (más liviana).
 - Los servicios se comunican por el nombre del contenedor (`http://catalogo-service:8081`), configurado con variables
@@ -266,12 +289,16 @@ consumidor tiene **su propia cola** enlazada a las claves que le interesan.
 flowchart LR
     V["ventas-service"] -->|"compra.confirmada"| X{{"exchange<br/>ticketya.eventos"}}
     V -->|"evento.cancelado"| X
+    V -->|"devolucion.aprobada"| X
     C["catalogo-service"] -->|"evento.publicado"| X
+    C -->|"evento.suspendido"| X
     X -->|"compra.confirmada"| Q1[["preferencias.compras"]] --> P["preferencias-service<br/>(historial)"]
     X -->|"compra.confirmada"| Q2[["notificaciones.compras"]] --> N["notificaciones-service"]
     X -->|"evento.cancelado"| Q3[["notificaciones.cancelaciones"]] --> N
     X -->|"evento.publicado"| Q4[["notificaciones.publicaciones"]] --> N
-    Q1 & Q2 & Q3 & Q4 -.->|"falla 3 veces"| DLQ[["ticketya.fallidos"]]
+    X -->|"evento.suspendido"| Q5[["notificaciones.suspensiones"]] --> N
+    X -->|"compra.confirmada<br/>devolucion.aprobada"| Q6[["catalogo.disponibilidad"]] --> C2["catalogo-service<br/>(estado AGOTADO)"]
+    Q1 & Q2 & Q3 & Q4 & Q5 & Q6 -.->|"falla 3 veces"| DLQ[["ticketya.fallidos"]]
 ```
 
 | Mensaje | Lo publica | Cuándo | Lo consumen |
@@ -279,6 +306,9 @@ flowchart LR
 | `compra.confirmada` | ventas | Pago aprobado y entradas emitidas | preferencias (historial) y notificaciones (aviso al cliente) |
 | `evento.cancelado` | ventas | Después de pasar a reintegro las entradas de un evento cancelado; lleva la lista de compradores | notificaciones (un aviso por comprador) |
 | `evento.publicado` | catálogo | Un evento pasa a PUBLICADO | notificaciones (avisa a los fans de esos artistas en esa ciudad, consultando a preferencias) |
+| `evento.suspendido` | catálogo | Un administrador suspende un evento (cambio de un evento) | notificaciones (pide los compradores a ventas y avisa a cada uno) |
+| `devolucion.aprobada` | ventas | Se aprueba una devolución (se liberó un lugar) | catálogo (vuelve a PUBLICADO un evento AGOTADO) |
+| `compra.confirmada` | ventas | (la misma de arriba) | catálogo, además (pasa a AGOTADO si se vendió toda la capacidad) |
 
 | Decisión | Por qué |
 |---|---|
@@ -467,7 +497,7 @@ stateDiagram-v2
 | Paso | Qué hace | Si falla un paso posterior, cómo se compensa |
 |---|---|---|
 | **T1** Reservar | Transacción local: toma los asientos (restricción única) o el cupo (bloqueo). Reserva PENDIENTE por 10 min. | **C3**: si no se paga a tiempo, la reserva vence y los lugares se liberan. |
-| **T2** Iniciar pago | Transacción local: reserva → EN_PAGO y compra PROCESANDO con su `Idempotency-Key`. Mientras está EN_PAGO nadie puede liberar esos lugares. | — |
+| **T2** Iniciar pago | Transacción local: reserva → EN_PAGO y compra PROCESANDO con su `Idempotency-Key` y la **referencia del cobro**. Mientras está EN_PAGO nadie puede liberar esos lugares. | Si ventas se cae antes de T3, la recuperación programada completa o compensa la compra (ver "Pago interrumpido"). |
 | Cobro (fuera de toda transacción) | Llamada a la pasarela, con reintentos, circuit breaker y una **referencia única** (no cobra dos veces). | — |
 | **T3** Confirmar | Transacción local: compra APROBADA, reserva CONFIRMADA, se emiten las entradas con QR. | Si el cobro se **rechaza**: **C1** cancela la reserva y libera los lugares. Si la pasarela **no responde**: **C2** la reserva vuelve a PENDIENTE (conserva los lugares) y el cliente reintenta. |
 | **T4** Avisar | Después del commit se publica `compra.confirmada` en RabbitMQ (historial y notificación). | No hace falta compensar la compra: los consumidores son idempotentes y reintentan; si RabbitMQ estaba caído, se pierde solo el aviso (ver *Transactional Outbox* abajo). |
@@ -482,6 +512,7 @@ son **coreografía**: ventas publica un evento y cada interesado reacciona por s
 |---|---|---|
 | Cancelación de un evento | Catálogo cancela (tx local) → avisa a ventas (HTTP, reintentos) → ventas pasa entradas a reintegro (tx local, idempotente) → publica `evento.cancelado` → notificaciones avisa a cada comprador | Si ventas no recibe el aviso, el evento queda con el aviso **pendiente** y catálogo lo reenvía cada 30 s hasta que se confirme. |
 | Devolución aprobada | Ventas libera el lugar y marca la entrada DEVUELTA (tx local) → pide el reintegro a la pasarela | Si la pasarela no responde, el reintegro queda **pendiente** y se reintenta cada minuto. |
+| Pago interrumpido (ventas se cae entre T2 y T3) | La reserva queda EN_PAGO y la compra PROCESANDO, con la referencia del cobro ya guardada | Cada minuto, las compras PROCESANDO de más de 3 minutos se **retoman**: se consulta a la pasarela por la referencia (sin cobrar). Si cobró → se emiten las entradas (T3); si nunca cobró → **compensación**: reserva CANCELADA y lugares liberados; si la pasarela no responde → se reintenta en la próxima pasada. |
 
 ### Consistencia fuerte vs. eventual
 
@@ -511,7 +542,8 @@ tabla `outbox` en la misma transacción y que un proceso lo envíe después. Se 
 6. Las **operaciones críticas** dejan además una línea en el logger `BITACORA` (clase `trazabilidad/Bitacora`):
    `COMPRA_APROBADA`, `COMPRA_RECHAZADA`, `PAGO_SIN_PASARELA`, `DEVOLUCION_SOLICITADA/APROBADA/RECHAZADA`,
    `CANCELACION_PROCESADA`, `INGRESO_PERMITIDO/RECHAZADO` (ventas) y `EVENTO_PUBLICADO`, `EVENTO_CANCELADO`,
-   `EVENTO_AGOTADO`, `EVENTO_CON_LUGARES`, `EVENTOS_FINALIZADOS` (catálogo). Grafana las muestra en el panel
+   `EVENTO_AGOTADO`, `EVENTO_CON_LUGARES`, `EVENTOS_FINALIZADOS`, `EVENTO_SUSPENDIDO` (catálogo); y la recuperación de
+   pagos interrumpidos, `PAGO_RECUPERADO` y `PAGO_COLGADO_LIBERADO` (ventas). Grafana las muestra en el panel
    "Bitácora de operaciones críticas" (consulta `{servicio=~".+"} |= "BITACORA"`).
 
 **Log centralizado (Grafana + Loki + Promtail):** Promtail lee los logs de todos los contenedores, Loki los guarda y
@@ -557,5 +589,26 @@ preferencias y notificaciones al consumir el mensaje de la compra.
 | Log centralizado | Loki + Promtail + Grafana | Livianos, se levantan con docker-compose y permiten filtrar por servicio, nivel y correlation id. |
 | Documentación de la API | springdoc-openapi | Genera OpenAPI 3 desde los controladores; el gateway la publica en `/api-docs/{servicio}`. |
 | Pruebas | JUnit 5, Mockito, Testcontainers, Postman/Newman, JMeter | Unitarias, contra infraestructura real en contenedores, de integración de punta a punta y de carga. |
+| Interfaz gráfica | React 18 + Vite, React Router, qrcode.react; nginx en Docker | SPA liviana para los flujos del cliente; nginx sirve los archivos y hace de proxy al gateway (mismo origen, sin CORS). |
 | Despliegue | Docker + docker-compose | Un contenedor por servicio y por base; todo el sistema con un solo comando. |
+
+## 22. Interfaz gráfica
+
+Una aplicación React (`frontend/`) cubre los flujos del cliente: buscar, elegir sector y asientos, fila virtual,
+reservar y pagar, ver las entradas con su QR, devoluciones, preferencias, recomendaciones y avisos.
+
+- **Consume la API solo por el gateway.** El navegador pide `/api/...` al mismo origen que sirvió la página, y nginx
+  (en Docker) o Vite (en desarrollo) reenvían al gateway sin el prefijo. Así no se habilita CORS ni se exponen los
+  servicios: la validación del JWT y la tabla de permisos siguen en un único lugar.
+- **No es un Backend For Frontend.** La aplicación usa la misma API que Postman y no hay un servicio que agregue datos
+  para ella; donde necesita combinar (el nombre del evento de cada entrada) lo hace en el navegador con lo que ya
+  devuelve el catálogo, que además está en caché. Un BFF se justificaría si hubiera clientes con necesidades distintas
+  (por ejemplo, una app móvil).
+- **Sesión:** el token de `POST /auth/login` se guarda en el navegador hasta que vence; ante un 401 la sesión se cierra.
+- **Pago idempotente:** cada intento de pago genera una `Idempotency-Key`; si la conexión se corta sin respuesta, el
+  reintento reusa la misma clave y el backend no cobra dos veces.
+- **Disponibilidad siempre fresca:** el mapa de asientos se arma con `GET /disponibilidad` (que no se cachea) y se
+  vuelve a pedir si una reserva falla con 409 porque otro cliente tomó el lugar.
+- **Zona horaria:** las fechas de la API no llevan zona; los contenedores Java corren con `TZ=America/Argentina/Buenos_Aires`
+  para que la hora del evento y el vencimiento de la reserva coincidan con los del navegador.
 

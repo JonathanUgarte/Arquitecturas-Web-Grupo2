@@ -1,4 +1,4 @@
-# Pruebas de integracion entre microservicios: levanta el sistema completo con docker compose (16 contenedores)
+# Pruebas de integracion entre microservicios: levanta el sistema completo con docker compose (17 contenedores)
 # y corre la coleccion de Postman entera con Newman (en un contenedor, no hace falta instalar nada).
 # Cada request pasa por el gateway y atraviesa los servicios reales: Postgres, MongoDB, RabbitMQ y Redis.
 # Uso (desde la raiz del proyecto):  powershell -ExecutionPolicy Bypass -File scripts/pruebas-integracion.ps1

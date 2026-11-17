@@ -3,10 +3,12 @@ package com.ticketya.notificaciones.service;
 import com.ticketya.notificaciones.canal.CanalDeEnvio;
 import com.ticketya.notificaciones.client.CatalogoClient;
 import com.ticketya.notificaciones.client.PreferenciasClient;
+import com.ticketya.notificaciones.client.VentasClient;
 import com.ticketya.notificaciones.dto.NotificacionDTO;
 import com.ticketya.notificaciones.mensajeria.CompraConfirmadaEvento;
 import com.ticketya.notificaciones.mensajeria.EventoCanceladoEvento;
 import com.ticketya.notificaciones.mensajeria.EventoPublicadoEvento;
+import com.ticketya.notificaciones.mensajeria.EventoSuspendidoEvento;
 import com.ticketya.notificaciones.model.EstadoNotificacion;
 import com.ticketya.notificaciones.model.Notificacion;
 import com.ticketya.notificaciones.model.TipoNotificacion;
@@ -38,6 +40,7 @@ public class NotificacionService {
     private final CanalDeEnvio canal;
     private final CatalogoClient catalogoClient;
     private final PreferenciasClient preferenciasClient;
+    private final VentasClient ventasClient;
     private final Clock reloj;
 
     // ---- (11) al confirmar una compra ----
@@ -59,6 +62,22 @@ public class NotificacionService {
             notificar(comprador, TipoNotificacion.EVENTO_CANCELADO, "evento:" + e.eventoId(),
                     "Evento cancelado", mensaje);
         }
+    }
+
+    // ---- (11) ante un cambio de un evento (suspension): un aviso a cada cliente con entradas vigentes ----
+    // Los compradores se piden a ventas, que es quien conoce las entradas. Si ventas no responde, el mensaje
+    // se reintenta (y termina en la cola de fallidos): el aviso no se pierde.
+    public void eventoSuspendido(EventoSuspendidoEvento e) {
+        List<Long> compradores = ventasClient.compradores(e.eventoId());
+        String evento = e.nombre() != null ? "\"" + e.nombre() + "\"" : nombreEvento(e.eventoId());
+        String fecha = e.fechaHora() == null ? "" : " (previsto para el " + e.fechaHora().format(FORMATO_FECHA) + ")";
+        String mensaje = "El evento " + evento + fecha + " fue suspendido. Tus entradas siguen siendo validas: "
+                + "te vamos a avisar si se reprograma o se cancela.";
+        for (Long comprador : compradores) {
+            notificar(comprador, TipoNotificacion.EVENTO_SUSPENDIDO, "evento:" + e.eventoId(),
+                    "Evento suspendido", mensaje);
+        }
+        log.info("Evento {} suspendido: {} comprador(es) avisado(s)", e.eventoId(), compradores.size());
     }
 
     // ---- (11) cuando un artista favorito publica un evento en la ciudad del cliente ----
